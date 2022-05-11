@@ -14,8 +14,16 @@ from Spayk.Nerves import SingleIzhikevichNeuron
 #%% Create Network
 tissue = Tissue()
 
-n0 = SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(20))
-tissue.add([n0])
+# n0 = SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(20))
+# n1 = SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(10))
+# tissue.add([n0,n1])
+
+# random izh. neurons
+import numpy as np
+random_neurons = []
+for i in range(100):
+    random_neurons.append(SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(np.random.rand()*50)))
+tissue.add(random_neurons)
 
 #%% Embody
 tissue.embody()
@@ -29,4 +37,9 @@ sim0 = Simulator()
 sim0.keep_alive(tissue, settings)
 
 #%% Aux.
-tissue.neurons[0].plot_v(dt=0.1)
+# tissue.neurons[0].plot_v(dt=0.1)
+# tissue.neurons[1].plot_v(dt=0.1)
+
+# tissue.plot_membrane_potential_of(0, dt=0.1)
+tissue.plot_membrane_potential_of(20, dt=0.1, hold_on=True)
+tissue.raster_plot(dt=0.1)

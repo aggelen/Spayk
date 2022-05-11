@@ -24,7 +24,7 @@ class SingleIzhikevichNeuron(Neuron):
         self.vt = 30    #mv
         
         self.v = -65
-        self.u = 1
+        self.u = self.b * self.v
         
         self.v_history = [self.v]
         self.u_history = [self.u]
