@@ -6,4 +6,4 @@ An open source environment for spiking neural networks
 ![random_regular](https://github.com/aggelen/spayk/blob/master/Static/random_regular.png)
 
 100 Neurons: Random Dynamics with const. current 10mA
-![random_all](https://github.com/aggelen/spayk/blob/master/Static/random_dynamics.jpg.png)
+![random_all](https://github.com/aggelen/spayk/blob/master/Static/random_dynamics.jpg)
