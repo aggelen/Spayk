@@ -13,14 +13,26 @@ class Neuron:
         pass
     
 class SingleIzhikevichNeuron(Neuron):
-    def __init__(self, stimuli=None):
+    neuron_dynamics = {'regular_spiking': 0,
+                       'intrinsically_bursting': 1,
+                       'chattering': 2,
+                       'fast_spiking': 3,
+                       'thalamo_cortical': 4,
+                       'resonator': 5,
+                       'low_threshold_spiking': 6}
+    
+    def __init__(self, stimuli=None, dynamics='regular_spiking'):
         super().__init__()
         self.stimuli = stimuli
         
-        self.a = 0.02
-        self.b = 0.25
-        self.c = -65
-        self.d = 6
+        # self.a = 0.02
+        # self.b = 0.2
+        # self.c = -65
+        # self.d = 6
+        
+        self.dynamics_selector(dynamics)
+        self.mode = self.neuron_dynamics[dynamics]
+        
         self.vt = 30    #mv
         
         self.v = -65
@@ -28,6 +40,45 @@ class SingleIzhikevichNeuron(Neuron):
         
         self.v_history = [self.v]
         self.u_history = [self.u]
+        
+    def dynamics_selector(self, mode):
+        if mode == 'regular_spiking':
+            self.a = 0.02
+            self.b = 0.25
+            self.c = -65
+            self.d = 8
+        elif mode == 'intrinsically_bursting':
+            self.a = 0.02
+            self.b = 0.2
+            self.c = -55
+            self.d = 4
+        elif mode == 'chattering':
+            self.a = 0.02
+            self.b = 0.2
+            self.c = -50
+            self.d = 2
+        elif mode == 'fast_spiking':
+            self.a = 0.1
+            self.b = 0.2
+            self.c = -65
+            self.d = 2
+        elif mode == 'thalamo_cortical':
+            self.a = 0.02
+            self.b = 0.25
+            self.c = -65
+            self.d = 0.05
+        elif mode == 'resonator':
+            self.a = 0.1
+            self.b = 0.25
+            self.c = -65
+            self.d = 8
+        elif mode == 'low_threshold_spiking':
+            self.a = 0.02
+            self.b = 0.2
+            self.c = -65
+            self.d = 2
+        else:
+            raise Exception('Invalid Dynamics for Izhikevich Model')       
         
     def forward(self, I, dt):
         dv = 0.04*self.v**2 + 5*self.v + 140 - self.u + I

@@ -9,11 +9,12 @@ import numpy as np
 
 class Simulator:
     def __init__(self):
-        self.a = 0.02
-        self.b = 0.25
-        self.c = -65
-        self.d = 6
-        self.vt = 30    #mv
+        # self.a = 0.02
+        # self.b = 0.25
+        # self.c = -65
+        # self.d = 6
+        # self.vt = 30    #mv
+        pass
     
     def keep_alive(self, organization, settings):
         dt = settings['dt']
@@ -26,24 +27,26 @@ class Simulator:
                 neuron.forward(neuron.stimuli.I, dt)
                 
         for t in time:
-            organization.vs, organization.us, spikes = self.izhikevich_update(organization.vs, 
-                                                                              organization.us, 
-                                                                              organization.Is,
-                                                                              dt)
-            organization.keep_log(spikes)
+            self.izhikevich_update(organization, dt)
+            # organization.keep_log(spikes)
         
         organization.end_of_life()
                 
-    def izhikevich_update(self, vs, us, Is, dt):
+    def izhikevich_update(self, organization, dt):
+        vs,us,Is, dMat = organization.vs, organization.us, organization.Is, organization.dynamics_matrix
+        a,b,c,d,vt = dMat[:,0],dMat[:,1],dMat[:,2],dMat[:,3],dMat[:,4]
+        
         dv = 0.04*np.square(vs) + 5*vs + 140 - us + Is
-        du = self.a*(self.b*vs - us)
+        du = a*(b*vs - us)
         vs = vs + dv*dt
         us = us + du*dt
-        
-        spikes = vs >= self.vt
-        
-        us = np.where(vs >= self.vt, us + self.d, us)
-        vs = np.where(vs >= self.vt, self.c, vs)
 
-        return vs, us, spikes
+        spikes = np.greater_equal(vs,vt)
+        
+        us = np.where(spikes, us + d, us)
+        vs = np.where(spikes, c, vs)
+        
+        organization.vs = vs
+        organization.us = us
+        organization.keep_log(spikes)
             

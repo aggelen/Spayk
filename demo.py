@@ -18,11 +18,21 @@ tissue = Tissue()
 # n1 = SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(10))
 # tissue.add([n0,n1])
 
-# random izh. neurons
+# random izh. neurons with multiple dynamics
 import numpy as np
+
+neuron_dynamics = {0: 'regular_spiking',
+                   1: 'intrinsically_bursting',
+                   2: 'chattering',
+                   3: 'fast_spiking',
+                   4: 'thalamo_cortical',
+                   5: 'resonator',
+                   6: 'low_threshold_spiking'}
+
 random_neurons = []
 for i in range(100):
-    random_neurons.append(SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(np.random.rand()*50)))
+    random_neurons.append(SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(10),
+                                                 dynamics=neuron_dynamics[np.random.randint(7)]))
 tissue.add(random_neurons)
 
 #%% Embody
@@ -40,6 +50,6 @@ sim0.keep_alive(tissue, settings)
 # tissue.neurons[0].plot_v(dt=0.1)
 # tissue.neurons[1].plot_v(dt=0.1)
 
-# tissue.plot_membrane_potential_of(0, dt=0.1)
-tissue.plot_membrane_potential_of(20, dt=0.1, hold_on=True)
+tissue.plot_membrane_potential_of(0, dt=0.1, color='g')
 tissue.raster_plot(dt=0.1)
+
