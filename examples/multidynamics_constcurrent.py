@@ -5,6 +5,9 @@ Created on Tue May 10 21:00:25 2022
 
 @author: aggelen
 """
+import sys
+sys.path.append("..") 
+
 from spayk.Core import Simulator
 from spayk.Stimuli import ConstantCurrentSource
 from spayk.Organization import Tissue
@@ -29,11 +32,12 @@ neuron_dynamics = {0: 'regular_spiking',
                    5: 'resonator',
                    6: 'low_threshold_spiking'}
 
-neurons = []
-for i in range(4):
-    neurons.append(SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(np.random.randint(8,16)),
-                                          dynamics=neuron_dynamics[0]))
-tissue.add(neurons)
+random_neurons = []
+for i in range(100):
+    random_neurons.append(SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(np.random.randint(8,30)),
+                                                 dynamics=neuron_dynamics[np.random.randint(7)]))
+tissue.add(random_neurons)
+
 #%% Embody
 tissue.embody()
 
@@ -49,6 +53,6 @@ sim0.keep_alive(tissue, settings)
 # tissue.neurons[0].plot_v(dt=0.1)
 # tissue.neurons[1].plot_v(dt=0.1)
 
-# tissue.plot_membrane_potential_of(0, dt=0.1, color='g')
+tissue.plot_membrane_potential_of(0, dt=0.1, color='g')
 tissue.raster_plot(dt=0.1)
 

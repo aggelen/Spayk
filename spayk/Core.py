@@ -9,6 +9,9 @@ import numpy as np
 
 class Simulator:
     def __init__(self):
+        """
+        Simulator module!
+        """
         # self.a = 0.02
         # self.b = 0.25
         # self.c = -65
