@@ -5,6 +5,9 @@ Created on Tue May 10 21:00:25 2022
 
 @author: aggelen
 """
+import sys
+sys.path.append("..") 
+
 from spayk.Core import Simulator
 from spayk.Stimuli import ConstantCurrentSource
 from spayk.Organization import Tissue
@@ -18,7 +21,7 @@ plt.close('all')
 #%% Create Network
 tissue = Tissue()
 
-#%%
+#%% 100 presyn neurons connected to 1 postsyn neuron with random weights
 presyn_neurons = []
 for i in range(100):
     n = SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(np.random.randint(5,45)))
@@ -44,6 +47,7 @@ sim0 = Simulator()
 sim0.keep_alive(tissue, settings)
 
 #%% Aux.
+
 tissue.raster_plot(dt=0.1)
 
 tissue.plot_membrane_potential_of(output_neuron_idx, dt=0.1, color='g')

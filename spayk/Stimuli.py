@@ -7,6 +7,9 @@ Created on Tue May 10 22:49:06 2022
 """
 
 class ConstantCurrentSource:
-    def __init__(self, I):
-        self.I = I      #mA
+    def __init__(self, mA):
+        self.mA = mA
+    
+    def I(self):
+        return self.mA
         

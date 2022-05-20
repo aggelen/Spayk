@@ -9,5 +9,9 @@ An open source environment for spiking neural networks
 ![random_all](https://github.com/aggelen/spayk/blob/master/static/random_dynamics.jpg)
 
 ## Synaptic Channel Models
-Synaptic channel models for AMPA, NMDA, GABA_A and GABA_B are now available. Fig 3.2 from Neuronal Dynamics book can be re-created with example script examples/synaptic_channels.py
+Synaptic channel models for AMPA, NMDA, GABA_A and GABA_B are now available. Fig 3.2 from Neuronal Dynamics book can be re-created with example script at examples/synaptic_channels.py
 ![random_all](https://github.com/aggelen/spayk/blob/master/static/synaptic_channels.png)
+
+## First Network
+100 presynaptic neurons connected to 1 postsynaptic neuron with random weights. See examples/random100_neurons_to_1.py
+![random_all](https://github.com/aggelen/spayk/blob/master/static/random100_to_1.png)

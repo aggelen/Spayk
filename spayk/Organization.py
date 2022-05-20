@@ -19,10 +19,12 @@ class Tissue:
         
         self.dynamics_matrix = []
         self.neuron_modes = []
+        self.stim_type = []
         
         self.log_v = []
         self.log_u = []
         self.log_spikes = []
+        self.log_Is = []
         
     def add(self, neurons):
         for n in neurons:
@@ -32,8 +34,28 @@ class Tissue:
             self.vs.append(-65)
             self.us.append(-13)
             self.Is.append(n.stimuli.I)
+            
+            stim_type = type(n.stimuli).__name__
+            if stim_type == 'ConstantCurrentSource':
+                self.stim_type.append(0)
+            elif stim_type == 'GENESIS_Synapse':
+                self.stim_type.append(1)
+                
             self.dynamics_matrix.append([n.a,n.b,n.c,n.d,n.vt])
             self.neuron_modes.append(n.mode)
+            
+    def calculate_Is(self, t):
+        Is = []
+        for i, I in enumerate(self.Is):
+            if self.stim_type[i] == 0:  #const source
+                Is.append(I())
+            elif self.stim_type[i] == 1:    #genesis synapse
+                if len(self.log_spikes) == 0:
+                    spikes = np.zeros_like(self.vs)
+                else:
+                    spikes = self.log_spikes[-1].astype(int)
+                Is.append(I(self.vs, spikes,t))
+        return Is
             
     def embody(self):
         self.vs = np.array(self.vs)
@@ -41,15 +63,17 @@ class Tissue:
         self.Is = np.array(self.Is)
         self.dynamics_matrix = np.array(self.dynamics_matrix)
     
-    def keep_log(self, spikes):
+    def keep_log(self, spikes, currents):
         self.log_v.append(self.vs)
         self.log_u.append(self.us)
         self.log_spikes.append(spikes)
+        self.log_Is.append(currents)
         
     def end_of_life(self):
         self.log_v = np.array(self.log_v)
         self.log_u = np.array(self.log_u)
         self.log_spikes = np.array(self.log_spikes, dtype=bool).T
+        self.log_Is = np.array(self.log_Is).T
         
     def plot_membrane_potential_of(self, neuron_id, dt=0.1, hold_on=False, color=None):
         time = np.arange(self.log_v.shape[0])*dt
@@ -59,11 +83,21 @@ class Tissue:
             plt.plot(time, self.log_v[:, neuron_id], color)
         else:
             plt.plot(time, self.log_v[:, neuron_id])
-        plt.xlabel('Time (ms)')
+        # plt.xlabel('Time (ms)')
         plt.ylabel('mV')
         plt.title('Membrane Potential of Neuron#{}'.format(neuron_id))
         plt.grid()
         plt.xlim([0, int(self.log_v.shape[0]*dt)])
+        
+    def plot_current_of_neuron(self, neuron_id, dt, hold_on=False):
+        time = np.arange(self.log_v.shape[0])*dt
+        if not hold_on:
+            plt.figure()
+        plt.plot(time, self.log_Is[neuron_id])
+        plt.xlabel('Time (ms)')
+        plt.ylabel('mA')
+        plt.title('Input Current of Neuron#{}'.format(neuron_id))
+        plt.grid()
         
     def raster_plot(self, dt=0.1):
         # color_list = [ "red", "blue", "green", "yellow", "purple", "orange", "white", "black" ]

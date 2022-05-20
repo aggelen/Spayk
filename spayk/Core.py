@@ -6,7 +6,7 @@ Created on Tue May 10 21:41:25 2022
 @author: aggelen
 """
 import numpy as np
-
+from tqdm import tqdm
 class Simulator:
     def __init__(self):
         """
@@ -25,18 +25,20 @@ class Simulator:
         
         #FIXME! Worst soln ever!
         
-        for neuron in organization.neurons:
-            for t in time:
-                neuron.forward(neuron.stimuli.I, dt)
+        # for neuron in organization.neurons:
+        #     for t in time:
+        #         neuron.forward(neuron.stimuli.I, dt)
                 
-        for t in time:
-            self.izhikevich_update(organization, dt)
-            # organization.keep_log(spikes)
+        for t_id in tqdm(range(time.shape[0])):
+            t = time[t_id]
+            self.izhikevich_update(organization, t, dt)
         
         organization.end_of_life()
                 
-    def izhikevich_update(self, organization, dt):
-        vs,us,Is, dMat = organization.vs, organization.us, organization.Is, organization.dynamics_matrix
+    def izhikevich_update(self, organization, t, dt):
+        vs, us, dMat = organization.vs, organization.us, organization.dynamics_matrix
+        Is = organization.calculate_Is(t)
+        
         a,b,c,d,vt = dMat[:,0],dMat[:,1],dMat[:,2],dMat[:,3],dMat[:,4]
         
         dv = 0.04*np.square(vs) + 5*vs + 140 - us + Is
@@ -51,5 +53,5 @@ class Simulator:
         
         organization.vs = vs
         organization.us = us
-        organization.keep_log(spikes)
+        organization.keep_log(spikes, Is)
             
