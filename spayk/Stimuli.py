@@ -12,4 +12,15 @@ class ConstantCurrentSource:
     
     def I(self):
         return self.mA
+    
+class ExternalCurrentSignal:
+    def __init__(self, signal):
+        self.signal = signal
+        self.idx = 0
+        
+    def I(self):
+        I = self.signal[self.idx]
+        self.idx += 1
+        return I
+        
         

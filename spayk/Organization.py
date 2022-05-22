@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 class Tissue:
-    def __init__(self):
+    def __init__(self, connected=None):
         self.neurons = []
                 
         self.vs = []
@@ -26,6 +26,12 @@ class Tissue:
         self.log_spikes = []
         self.log_Is = []
         
+        if connected is not None:
+            self.is_connected = True
+            self.connected = connected
+        else:
+            self.is_connected = False
+        
     def add(self, neurons):
         for n in neurons:
             self.neurons.append(n)
@@ -36,7 +42,7 @@ class Tissue:
             self.Is.append(n.stimuli.I)
             
             stim_type = type(n.stimuli).__name__
-            if stim_type == 'ConstantCurrentSource':
+            if stim_type == 'ConstantCurrentSource' or stim_type == 'ExternalCurrentSignal':
                 self.stim_type.append(0)
             elif stim_type == 'GENESIS_Synapse':
                 self.stim_type.append(1)
@@ -52,9 +58,20 @@ class Tissue:
             elif self.stim_type[i] == 1:    #genesis synapse
                 if len(self.log_spikes) == 0:
                     spikes = np.zeros_like(self.vs)
+                    
+                    #FIXME!
+                    if self.is_connected:
+                        connection_spikes = np.zeros_like(self.connected[0].vs)
+                    else:
+                        connection_spikes = None
                 else:
                     spikes = self.log_spikes[-1].astype(int)
-                Is.append(I(self.vs, spikes,t))
+                    if self.is_connected:
+                        connection_spikes = self.connected[0].log_spikes[-1].astype(int)  
+                    else:
+                        connection_spikes = None
+                    
+                Is.append(I(self.vs, spikes, t, connection_spikes))
         return Is
             
     def embody(self):
@@ -112,7 +129,7 @@ class Tissue:
                   'resonator',
                   'low_threshold_spiking']
         
-        f = plt.figure('Raster Plot')
+        f = plt.figure()
         plt.title('Raster Plot')
         plt.xlabel('Time (ms)')
         plt.ylabel('Neuron ID')

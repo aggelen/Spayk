@@ -19,7 +19,7 @@ class Simulator:
         # self.vt = 30    #mv
         pass
     
-    def keep_alive(self, organization, settings):
+    def keep_alive(self, organizations, settings):
         dt = settings['dt']
         time = np.arange(0,settings['duration'],dt)
         
@@ -31,9 +31,11 @@ class Simulator:
                 
         for t_id in tqdm(range(time.shape[0])):
             t = time[t_id]
-            self.izhikevich_update(organization, t, dt)
-        
-        organization.end_of_life()
+            for organization in organizations:
+                self.izhikevich_update(organization, t, dt)
+                
+        for organization in organizations:
+            organization.end_of_life()
                 
     def izhikevich_update(self, organization, t, dt):
         vs, us, dMat = organization.vs, organization.us, organization.dynamics_matrix

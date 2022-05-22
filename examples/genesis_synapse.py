@@ -24,6 +24,11 @@ tissue = Tissue()
 n0 = SingleIzhikevichNeuron(stimuli=ConstantCurrentSource(np.random.randint(8,25)))
 tissue.add([n0])
 
+gs0 = GENESIS_Synapse(params={'tauExc': 15, 'dt': 0.1}, 
+                        io_neuron_idx=[0, 1])
+n_postsyn = SingleIzhikevichNeuron(stimuli=gs0)
+tissue.add([n_postsyn])
+
 #%% Embody
 tissue.embody()
 
@@ -36,43 +41,6 @@ sim0 = Simulator()
 sim0.keep_alive(tissue, settings)
 
 #%% Aux.
-# tissue.neurons[0].plot_v(dt=0.1)
-# tissue.neurons[1].plot_v(dt=0.1)
-
-# tissue.plot_membrane_potential_of(0, dt=0.1, color='g')
 tissue.raster_plot(dt=0.1)
 
-#%% synapse devel
-syn0 = Synapse()
-AMPA_decay_params = {'g_syn0': 5,
-                     'tau': 2,
-                     'tf': 1000}
-
-t = np.arange(-10,500, 0.1)
-time_array = np.arange(0,100,0.1)
-
-# syn0.create_channel(AMPA_decay_params, descriptor='AMPA', model='single_decay')
-
-# spike_times = np.where(tissue.log_spikes[0])[0]
-
-
-# Isyn = []
-# for tid, t in enumerate(time_array):
-#     if tid in spike_times:
-#         syn0.channels['AMPA'].tf = t
-        
-#     ie = -syn0.calculate_syn_current(t, syn0.channels['AMPA'], u=-65, Esyn=0)
-#     Isyn.append(ie)
-    
-# plt.figure()
-# plt.plot(time_array, Isyn)
-
-#%% Genesis
-gs0 = GENESIS_Synapse(tau=10, dt=0.1)
-
-gSyn = []
-for tid, t in enumerate(time_array):
-    gSyn.append(gs0.g_syn(spike=tissue.log_spikes[0][tid],t=t))
-
-plt.figure()
-plt.plot(time_array, gSyn)
+gs0.plot_channel_conductances(0, dt=0.1)
