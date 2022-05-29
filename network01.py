@@ -91,20 +91,20 @@ output_tissue = Tissue(connected=[network0])
 
 op_synapses = []
 op_synapses.append(GENESIS_Synapse(params={'tauExc': 15, 'tauInh': 10, 'dt': 0.1},
-                        io_neuron_idx=[[1,2], 0],
-                        external_inputs=np.arange(100),
-                        exc_inh=-np.ones(2)))
+                        io_neuron_idx=[np.append(np.ones(25), 2*np.ones(25)).astype(int), 0],
+                        external_inputs=np.random.randint(0,100,50),
+                        exc_inh=-np.ones(50)))
 op_synapses.append(GENESIS_Synapse(params={'tauExc': 15, 'tauInh': 10, 'dt': 0.1},
-                        io_neuron_idx=[[0,2], 1],
-                        external_inputs=np.arange(100),
-                        exc_inh=-np.ones(2)))
+                        io_neuron_idx=[0*np.append(np.ones(25), 2*np.ones(25)).astype(int), 1],
+                        external_inputs=np.random.randint(0,100,50),
+                        exc_inh=-np.ones(50)))
 op_synapses.append(GENESIS_Synapse(params={'tauExc': 15, 'tauInh': 10, 'dt': 0.1},
-                        io_neuron_idx=[[0,1], 2],
-                        external_inputs=np.arange(100),
-                        exc_inh=-np.ones(2)))
+                        io_neuron_idx=[np.append(0*np.ones(25), 1*np.ones(25)).astype(int), 2],
+                        external_inputs=np.random.randint(0,100,50),
+                        exc_inh=-np.ones(50)))
 
 for i in range(3):
-    op_synapses[i].set_W(np.ones(2))
+    op_synapses[i].set_W(np.ones(50))
 
 neurons = []
 for i in range(3):

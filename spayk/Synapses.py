@@ -11,31 +11,31 @@ import matplotlib.pyplot as plt
 class Synapse:
     def __init__(self):
        self.channels = {}
-        
+
     def create_channel(self, params, descriptor, model='single_decay'):
         self.channels[descriptor] = Channel(params, descriptor, model)
-    
+
     def calculate_syn_current(self, t, channel, u, Esyn):
         """
         Calculate synaptic current
         """
         return channel.g_syn(t)*(u - Esyn)
-    
+
 class Channel:
     def __init__(self, params, descriptor, model):
         self.model = model
         self.g_syn0 = params['g_syn0']
         self.tau = params['tau']
         self.tf = params['tf']
-        
+
         if model == 'double_decay':
             self.tau_fast = params['tau_fast']
             self.tau_slow = params['tau_slow']
             self.tau_rise = params['tau_rise']
             self.a = params['a']
-        
+
         self.descriptor = descriptor
-    
+
     def g_syn(self, t):
         if self.model == 'single_decay':
             return self.single_decay(t)
@@ -43,10 +43,10 @@ class Channel:
             return self.double_decay(t)
         else:
             raise NotImplementedError()
-            
+
     def single_decay(self, t):
         return self.g_syn0*np.exp(-(t-self.tf)/self.tau)*np.heaviside(t-self.tf, 0.5)
-    
+
     def double_decay(self, t):
         rise = 1-np.exp(-(t-self.tf)/self.tau_rise)
         fast = self.a*np.exp(-(t-self.tf)/self.tau_fast)
@@ -62,14 +62,14 @@ class GENESIS_Synapse:
             self.tauExc = params['tauExc']
         else:
             self.tauExc = 10
-            
+
         if 'tauInh' in params.keys():
             self.tauInh = params['tauInh']
         else:
             self.tauInh = 10
-            
+
         self.dt = params['dt']
-        
+
         self.input_neuron_idx, self.output_neuron_idx = io_neuron_idx
         if type(self.input_neuron_idx) == list:
             self.no_input_neurons = len(self.input_neuron_idx)
@@ -77,126 +77,80 @@ class GENESIS_Synapse:
         else:
             self.no_input_neurons = 1
             self.W = np.random.rand()
-         
+
         #FIXME!
         if external_inputs is not None:
             self.no_ext_input_neurons = len(external_inputs)
             self.external_inputs = external_inputs
             self.W_ext = np.random.rand(len(self.external_inputs))
-            
+
             self.last_zs_ext = np.zeros(self.no_ext_input_neurons)
             self.last_spikes_ext = np.zeros(self.no_ext_input_neurons)
             self.last_gs_ext = np.zeros(self.no_ext_input_neurons)
-            
+
             self.taus_ext = np.where(np.ones_like(self.external_inputs), self.tauExc, self.tauInh)
             self.fdts_ext = np.exp(-self.dt / self.taus_ext)
             self.channel_conductance_history_ext = []
-        
+
         self.last_zs = np.zeros(self.no_input_neurons)
         self.last_spikes = np.zeros(self.no_input_neurons)
         self.last_gs = np.zeros(self.no_input_neurons)
-                
+
         if exc_inh is not None:
             self.exc_inh = exc_inh
         else:
             self.exc_inh = np.ones_like(self.input_neuron_idx)
-        
+
         self.taus = np.where(exc_inh, self.tauExc, self.tauInh)
         self.fdts = np.exp(-self.dt / self.taus)
         self.channel_conductance_history = []
-        
+
     def set_W(self, W):
         self.W = W
-                    
+
     def g_syns(self, spikes, t, external_data=None):
         zs = (self.last_zs * self.fdts) + (self.taus * (1-self.fdts)/self.dt)*self.last_spikes
         gs = (self.last_gs * self.fdts) + (self.last_zs * self.taus * (1-self.fdts))
         self.last_zs = zs
         self.last_gs = gs
         self.last_spikes = spikes[self.input_neuron_idx]
-        
+
         if external_data is not None:
             zs_ext = (self.last_zs_ext * self.fdts_ext) + (self.taus_ext * (1-self.fdts_ext)/self.dt)*self.last_spikes_ext
             gs_ext = (self.last_gs_ext * self.fdts_ext) + (self.last_zs_ext * self.taus_ext * (1-self.fdts_ext))
             self.last_zs_ext = zs_ext
             self.last_gs_ext = gs_ext
             self.last_spikes_ext = external_data
-            
+
             # gs = np.append(gs,gs_ext)
         else:
             gs_ext = None
-        
+
         return gs, gs_ext
-    
+
     def I(self, vs, spikes, t, connection_spikes=None):
         # n0 = self.input_neurons[0]
         # self.g_syn(spike=tissue.log_spikes[0][tid],t=t)
-        
+
         #FIXME!
         I = 0.0
-        
+
         if connection_spikes is not None:
             external_data = connection_spikes[self.external_inputs]
         else:
             external_data = None
-        
+
         gsyns, gsyn_ext = self.g_syns(spikes, t, external_data)
         self.channel_conductance_history.append(gsyns)
-        
+
         Is = gsyns*-self.exc_inh*2e-3*vs[self.output_neuron_idx]*self.W
-        
+
         if gsyn_ext is not None:        #all exc.
             Is_ext = -gsyn_ext*2e-3*vs[self.output_neuron_idx]*self.W_ext
             return sum(np.append(Is, Is_ext))
         else:
             return sum(Is)
-        
 
-        
-       
-        
-        # for neuron_id in self.input_neuron_idx:
-        #     # neuron_id = self.input_neuron_idx[0]
-        #     spike = spikes[neuron_id]
-        #     is_exc = self.exc_inh[neuron_id]
-        #     gsyn = self.g_syn(spike,t,is_exc)*1e-4*vs[self.output_neuron_idx]*self.W[neuron_id]
-        #     if is_exc:     #1 for exc, 0 for inh.
-        #         I += -gsyn 
-        #     else:
-        #         I += gsyn 
-        # return I
-        
-    # def g_syn(self, spike, t, exc=True):
-    #     if exc:
-    #         tau = self.tauExc
-    #     else:
-    #         tau = self.tauInh
-            
-    #     fdt = np.exp(-self.dt / tau)
-    #     z = (self.last_z * fdt) + (tau * (1-fdt)/ self.dt)*self.last_spike
-    #     g = (self.last_g * fdt) + (self.last_z * tau * (1-fdt))
-    #     self.last_z = z
-    #     self.last_g = g
-    #     self.last_spike = spike
-    #     return g
-    
-    # def I(self, vs, spikes, t):
-    #     # n0 = self.input_neurons[0]
-    #     # self.g_syn(spike=tissue.log_spikes[0][tid],t=t)
-        
-    #     #FIXME!
-    #     I = 0.0
-    #     for neuron_id in self.input_neuron_idx:
-    #         # neuron_id = self.input_neuron_idx[0]
-    #         spike = spikes[neuron_id]
-    #         is_exc = self.exc_inh[neuron_id]
-    #         gsyn = self.g_syn(spike,t,is_exc)*1e-4*vs[self.output_neuron_idx]*self.W[neuron_id]
-    #         if is_exc:     #1 for exc, 0 for inh.
-    #             I += -gsyn 
-    #         else:
-    #             I += gsyn 
-    #     return I
-    
     def plot_channel_conductances(self, ch_id, dt):
         g_hist = np.array(self.channel_conductance_history).T
         time = np.arange(g_hist.shape[1])*dt
@@ -206,3 +160,80 @@ class GENESIS_Synapse:
         plt.ylabel('uS')
         plt.title('Conductance of Channel between Neuron#{}'.format(ch_id))
         plt.grid()
+        
+#%% STDP
+
+class STDP:
+    def __init__(self, A_plus, A_minus, tau_stdp):
+        self.A_plus = A_plus
+        self.A_minus = A_minus
+        self.tau_stdp = tau_stdp
+    
+    def calculate_dW(self, time_diff):
+        dW = np.zeros(len(time_diff))
+        dW[time_diff <= 0] = self.A_plus * np.exp(time_diff[time_diff <= 0] / self.tau_stdp)
+        dW[time_diff > 0] = -self.A_minus * np.exp(-time_diff[time_diff > 0] / self.tau_stdp)
+        return dW 
+    
+    def calculate_LTP(self, presyn_spike_trains, dt):
+      time_array = np.arange(presyn_spike_trains.shape[1])*dt
+
+      # Initialize
+      P = np.zeros(presyn_spike_trains.shape)
+      for it in range(time_array.size - 1):
+          dP = -(dt / self.tau_stdp) * P[:, it] + self.A_plus * presyn_spike_trains[:, it + 1]
+          P[:, it + 1] = P[:, it] + dP
+      return P
+  
+    def update_weights(self, presyn_spike_trains, dt):
+        P = self.calculate_LTP(presyn_spike_trains, dt)
+        time_array = np.arange(presyn_spike_trains.shape[1])*dt
+        
+        #LIF simulation
+        V_th, V_reset = -55., -75.
+        tau_m = 10.
+        V_init, V_L = -65., -75.
+        gE_bar, VE, tau_syn_E = 0.024, 0.0, 5.0
+        gE_init = 0.024
+        tref = 2.0
+        
+        tr = 0.
+        v = np.zeros(time_array.size)
+        v[0] = V_init
+        M = np.zeros(time_array.size)
+        gE = np.zeros(time_array.size)
+        gE_bar_update = np.zeros(presyn_spike_trains.shape)
+        gE_bar_update[:, 0] = gE_init  # note: gE_bar is the maximum value
+        
+        rec_spikes = [] 
+        for it in range(time_array.size - 1):
+            if tr > 0:
+                v[it] = V_reset
+                tr = tr - 1
+            elif v[it] >= V_th:   # reset voltage and record spike event
+                rec_spikes.append(it)
+                v[it-1] =+ 30
+                v[it] = V_reset
+                M[it] = M[it] - self.A_minus
+                gE_bar_update[:, it] = gE_bar_update[:, it] + P[:, it] * gE_bar
+                id_temp = gE_bar_update[:, it] > gE_bar
+                gE_bar_update[id_temp, it] = gE_bar
+                tr = tref / dt            
+            
+            M[it + 1] = np.copy(M[it] - dt / self.tau_stdp * M[it])
+            
+            gE[it + 1] = np.copy(gE[it] - (dt / tau_syn_E) * gE[it] + (gE_bar_update[:, it] * presyn_spike_trains[:, it]).sum())
+            gE_bar_update[:, it + 1] = np.copy(gE_bar_update[:, it] + M[it]*presyn_spike_trains[:, it]*gE_bar)
+            id_temp = gE_bar_update[:, it + 1] < 0
+            gE_bar_update[id_temp, it + 1] = 0.
+        
+            # calculate the increment of the membrane potential
+            dv = (-(v[it] - V_L) - gE[it + 1] * (v[it] - VE)) * (dt / tau_m)
+        
+            # update membrane potential
+            v[it + 1] = v[it] + dv
+            
+        rec_spikes = np.array(rec_spikes) * dt
+        
+        return v, rec_spikes, gE, P, M, gE_bar_update
+        
