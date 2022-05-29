@@ -15,3 +15,8 @@ Synaptic channel models for AMPA, NMDA, GABA_A and GABA_B are now available. Fig
 ## First Network
 100 presynaptic neurons connected to 1 postsynaptic neuron with random weights. See examples/random100_neurons_to_1.py
 ![random_all](https://github.com/aggelen/spayk/blob/master/static/random100_to_1.png)
+
+## Learning Attempt: STDP
+STDP support now available. Please see [STDP Page](https://github.com/aggelen/Spayk/wiki/STDP) at Spayk Wiki.
+![random_all](https://github.com/aggelen/spayk/blob/master/static/stdp/scn01_dW.png)
+
