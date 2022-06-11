@@ -10,9 +10,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 class Tissue:
-    def __init__(self, connected=None):
+    def __init__(self, connected=None, stdp_status=True, name=''):
         self.neurons = []
-                
+        self.name = name
+        self.stdp_status = stdp_status
         self.vs = []
         self.us = []
         self.Is = []
@@ -26,12 +27,18 @@ class Tissue:
         self.log_spikes = []
         self.log_Is = []
         
+        self.LTD_history = np.zeros((0,1))
+        self.gE_bar_update = np.ones((0,1))
+        
+        
         if connected is not None:
             self.is_connected = True
             self.connected = connected
         else:
             self.is_connected = False
         
+        
+
     def add(self, neurons):
         for n in neurons:
             self.neurons.append(n)
@@ -50,7 +57,10 @@ class Tissue:
             self.dynamics_matrix.append([n.a,n.b,n.c,n.d,n.vt])
             self.neuron_modes.append(n.mode)
             
-    def calculate_Is(self, t):
+            self.LTD_history = np.r_[self.LTD_history, np.array([[0]])]
+            # self.gE_bar_update = np.r_[self.gE_bar_update, np.array([[0.024]])]
+            
+    def calculate_Is(self, t, synaptic_plasticity=False):
         Is = []
         for i, I in enumerate(self.Is):
             if self.stim_type[i] == 0:  #const source
@@ -71,8 +81,20 @@ class Tissue:
                     else:
                         connection_spikes = None
                     
-                Is.append(I(self.vs, spikes, t, connection_spikes))
+                Is.append(I(i, self.vs, spikes, t, connection_spikes, synaptic_plasticity))
         return Is
+            
+    def LTD_update(self, spikes, dt, tau_stdp=20, A_minus=0.008*1.10):
+        if any(spikes):
+            self.LTD_history[spikes,-1] = self.LTD_history[spikes,-1] - A_minus
+            
+            spiking_neurons = [i for (i, v) in zip(self.neurons, spikes) if v] 
+            for neuron in spiking_neurons:
+                neuron.stimuli.update_gebar_with_postspike()
+            
+        self.LTD_history = np.c_[self.LTD_history, 
+                                 np.copy(self.LTD_history[:,-1] - dt / tau_stdp * self.LTD_history[:,-1])]
+        
             
     def embody(self):
         self.vs = np.array(self.vs)

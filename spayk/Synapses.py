@@ -54,7 +54,7 @@ class Channel:
         return self.g_syn0*rise*(fast+slow)*np.heaviside(t-self.tf, 0.5)
 
 class GENESIS_Synapse:
-    def __init__(self, params, io_neuron_idx=None, external_inputs=None, exc_inh=None):
+    def __init__(self, params, io_neuron_idx=None, external_inputs=None, external_tissues=None, exc_inh=None):
         """
         by Wilson & Bower, 1989 in GENESIS
         """
@@ -69,6 +69,7 @@ class GENESIS_Synapse:
             self.tauInh = 10
 
         self.dt = params['dt']
+        self.external_tissues = external_tissues
 
         self.input_neuron_idx, self.output_neuron_idx = io_neuron_idx
         if type(self.input_neuron_idx) == list:
@@ -104,9 +105,18 @@ class GENESIS_Synapse:
         self.taus = np.where(exc_inh, self.tauExc, self.tauInh)
         self.fdts = np.exp(-self.dt / self.taus)
         self.channel_conductance_history = []
+        
+        self.stdp = STDP(A_plus=0.008, A_minus=0.008*1.10, tau_stdp=20)
+        
+        self.LTP_history = np.zeros((self.no_ext_input_neurons,2))
+        # self.LTD_history = np.zeros((self.no_ext_input_neurons,2))
+        self.gE_bar_update = np.ones((self.no_ext_input_neurons,1))
 
     def set_W(self, W):
         self.W = W
+        
+    def set_tissue(self, tissue):
+        self.own_tissue = tissue
 
     def g_syns(self, spikes, t, external_data=None):
         zs = (self.last_zs * self.fdts) + (self.taus * (1-self.fdts)/self.dt)*self.last_spikes
@@ -127,8 +137,23 @@ class GENESIS_Synapse:
             gs_ext = None
 
         return gs, gs_ext
+    
+    def update_gebar_with_postspike(self):
+        self.gE_bar_update[:, -1] = self.gE_bar_update[:, -1] + self.LTP_history[:,-1] * 0.024
+        id_temp = self.gE_bar_update[:, -1] > 0.024
+        self.gE_bar_update[id_temp, -1] = 0.024
+    
+    # def update_gebar(self,LTDs):
+    #     # gE[it + 1] = np.copy(gE[it] - (dt / tau_syn_E) * gE[it] + (gE_bar_update[:, it] * presyn_spike_trains[:, it]).sum())
+        
+    #     self.gE_bar_update = np.c_[self.gE_bar_update, 
+    #                                 np.copy(self.gE_bar_update[:, it] + LTDs*presyn_spike_trains[:, -1]*0.024)]
+    
+    #     id_temp = gE_bar_update[:, it + 1] < 0
+    #     gE_bar_update[id_temp, it + 1] = 0.
+    #     pass
 
-    def I(self, vs, spikes, t, connection_spikes=None):
+    def I(self, i, vs, spikes, t, connection_spikes=None, synaptic_plasticity=False):
         # n0 = self.input_neurons[0]
         # self.g_syn(spike=tissue.log_spikes[0][tid],t=t)
 
@@ -144,7 +169,24 @@ class GENESIS_Synapse:
         self.channel_conductance_history.append(gsyns)
 
         Is = gsyns*-self.exc_inh*2e-3*vs[self.output_neuron_idx]*self.W
+        
+        
+        if synaptic_plasticity == 'STDP' and self.external_tissues is not None and t > 0.1:
+            # external_data  == presyn_spike_trains
+            dP = -(self.dt / self.stdp.tau_stdp) * self.LTP_history[:, -2] + self.stdp.A_plus * external_data
+            new_P = self.LTP_history[:,-1] + dP
+            self.LTP_history = np.c_[self.LTP_history, new_P]
+            
+            LTD = self.own_tissue.LTD_history[i,-1]
+            
+            self.gE_bar_update = np.c_[self.gE_bar_update, 
+                                        np.copy(self.gE_bar_update[:, -1] + LTD*external_data*0.024)]
+        
+            id_temp = self.gE_bar_update[:, -1] < 0
+            self.gE_bar_update[id_temp, -1] = 0.
+            
 
+            
         if gsyn_ext is not None:        #all exc.
             Is_ext = -gsyn_ext*2e-3*vs[self.output_neuron_idx]*self.W_ext
             return sum(np.append(Is, Is_ext))
