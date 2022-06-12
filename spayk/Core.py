@@ -48,13 +48,14 @@ class Simulator:
             
     def new_core_syn(self, tissue, params):
         self.results = {'I_in': [],
-                        'v_out': []}
+                        'v_out': [],
+                        'presyn_spikes': []}
         
         dt = params['dt']
         T = params['t_stop']
-    
+        
         steps = range(int(T / dt))
-        for step in steps:
+        for step in tqdm(steps):
             t = step*dt
             
             if 'stimuli' in params.keys():
@@ -75,6 +76,42 @@ class Simulator:
             # Store values
             self.results['I_in'].append(tissue.I)
             self.results['v_out'].append(v)
+            self.results['presyn_spikes'].append(p_syn_spike)
+            
+    def new_core_syn_experimental(self, tissue, params):
+        self.results = {'I_in': [],
+                        'v_out': [],
+                        'presyn_spikes': [],
+                        'weight_means': []}
+        
+        dt = params['dt']
+        T = params['t_stop']
+        
+        steps = range(int(T / dt))
+        for step in tqdm(steps):
+            t = step*dt
+            
+            if 'stimuli' in params.keys():
+                p_syn_spike = params['stimuli'][step]
+            else:
+                if t > 200 and t < 700:
+                    # Generate a random matrix
+                    r = np.random.uniform(0,1,(tissue.no_connected_neurons))
+                    # A synapse has spiked when r is lower than the spiking rate
+                    p_syn_spike = r < params['frate'] * params['dt']
+                else:
+                    # No synapse activity during that period
+                    p_syn_spike = np.zeros((tissue.no_connected_neurons), dtype=bool)
+            
+            tissue.inject_spike_train(p_syn_spike)
+            v, u = tissue()
+            
+            # Store values
+            self.results['I_in'].append(tissue.I)
+            self.results['v_out'].append(v)
+            self.results['presyn_spikes'].append(p_syn_spike)
+            # self.results['weight_means'].append([tissue.W.mean(), tissue.W_in.mean()])
+            self.results['weight_means'].append(tissue.W_in.mean())
             
     def new_core_syn_stdp(self, tissue, params):
         self.results = {'I_in': [],

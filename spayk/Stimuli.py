@@ -27,8 +27,9 @@ class ExternalCurrentSignal:
 # A class that generates random spike trains
 class SpikeTrains(object):
     
-    def __init__(self, n_syn, r_min=0.0, r_max=90.0, r=None, s_max=1800, ds_max=360, s=None, auto_vrate=True, delta_max=0):
+    def __init__(self, n_syn, r_min=0.0, r_max=90.0, r=None, s_max=1800, ds_max=360, s=None, auto_vrate=True, delta_max=0, dt=0.1):
         
+        self.dt = dt*1e-3   #dt in ms
         # Number of synapses
         self.n_syn = n_syn
         # Minimum and maximum spiking rate (in Hz)
@@ -65,7 +66,8 @@ class SpikeTrains(object):
             x = np.random.uniform(0,1, size=(self.n_syn))
             # Each synapse spikes if the drawn number is lower than the probablity
             # given by the integration of the rate over one millisecond
-            spikes = x < self.r * 1e-3
+            # spikes = x < self.r * 1e-3
+            spikes = np.less_equal(x, self.r*self.dt)
             # Keep a memory of our spikes
             if self.spikes is None:
                 self.spikes = np.array([spikes])
@@ -112,7 +114,7 @@ class SpikeTrains(object):
 
         # Update spiking rate
         if delta is None:
-            delta = self.s
+            delta = self.s*self.dt
         self.r = np.clip( self.r + delta, self.r_min, self.r_max)
         # Update spiking rate variation
         ds = np.random.uniform(-self.ds_max, self.ds_max, size=(self.n_syn))

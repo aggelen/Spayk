@@ -43,7 +43,7 @@ plt.figure()
 plt.scatter(steps*dt, neurons, s=3)
 
 
-w_in = 5e-4*np.ones((n,m), dtype=np.float32)
+w_in = 0.6*np.ones((n,m), dtype=np.float32)
 
 params = {'no_neurons': 1,
           'dynamics': 'regular_spiking',
@@ -53,8 +53,8 @@ params = {'no_neurons': 1,
           'dt': dt,
           'a_plus': 0.03125,
           'a_minus': 0.0265625,
-          'tau_plus': 16.8,
-          'tau_minus': 33.7}
+          'tau_plus': 10,
+          'tau_minus': 20}
 
 network = STDPIzhikevichNeuronGroup(params)
 
@@ -75,5 +75,5 @@ plt.plot(sim0.results['v_out'])
 plt.figure()
 plt.plot(sim0.results['I_in'])
 
-# plt.figure()
-# plt.plot(sim0.results['delta_weights'][95])
+plt.figure()
+plt.plot(sim0.results['delta_weights'])

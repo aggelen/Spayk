@@ -146,7 +146,8 @@ params = {'no_neurons': 1,
           'D': d,
           'W_in': w_in,
           'W': w,
-          'E': e}
+          'E': e,
+          'dt': 0.1}
 
 network = RecurrentIzhikevichNeuronGroup(params)
 

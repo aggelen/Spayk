@@ -43,7 +43,7 @@ stimuli = spike_trains.add_spikes(int(T/dt))
 n = 1
 m = 500
 
-w_in = 0.00010*np.ones((n,m), dtype=np.float32)
+w_in = 0.7*np.ones((n,m), dtype=np.float32)
 
 params = {'no_neurons': 1,
           'dynamics': 'regular_spiking',

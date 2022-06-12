@@ -246,15 +246,24 @@ class SynapticIzhikevichNeuronGroup(IzhikevichNeuronGroup):
         self.tau = params['tau']
         
         if not 'W_in' in params.keys():
-            self.W_in = np.full((params['no_neurons'], self.no_connected_neurons), 0.07, dtype=np.float32)
+            self.W_in = np.full((params['no_neurons'], self.no_connected_neurons), 0.5, dtype=np.float32)
         else:
             self.W_in = params['W_in']
             
+        if 'training_mode' in params.keys():
+            self.training_mode = params['training_mode']
+            self.desired_output_neurons, self.desired_output_currents = params['desired_output_currents']
+            self.current_counter = 0
+        else:
+            self.training_mode = False
+        
         # The reason this one is different is to allow broadcasting when subtracting v
         self.E_in = np.zeros((self.no_connected_neurons), dtype=np.float32)
         self.g_in = np.zeros((self.no_connected_neurons), dtype=np.float32)
 
         self.syn_has_spiked = np.zeros((self.no_connected_neurons), dtype=bool)
+        
+        self.synaptic_scale = (1.0 / self.no_connected_neurons)/2.0
         
         super(SynapticIzhikevichNeuronGroup, self).__init__(params)
            
@@ -263,8 +272,8 @@ class SynapticIzhikevichNeuronGroup(IzhikevichNeuronGroup):
         # - increment by one the current factor of synapses that fired
         # - decrease by tau the conductance dynamics in any case
         self.g_in  = np.where(self.syn_has_spiked,
-                               self.g_in + np.ones_like(self.g_in),
-                               np.subtract(self.g_in, np.multiply(self.dt, np.divide(self.g_in, self.tau))))
+                              self.g_in + np.ones_like(self.g_in) * self.synaptic_scale,
+                              np.subtract(self.g_in, np.multiply(self.dt, np.divide(self.g_in, self.tau))))
         
         # We can now evaluate the synaptic input currents
         # Isyn = Σ w_in(j)g_in(j)E_in(j) - (Σ w_in(j)g_in(j)).v(t)
@@ -272,6 +281,11 @@ class SynapticIzhikevichNeuronGroup(IzhikevichNeuronGroup):
                              np.multiply(np.einsum('nm,m->n', self.W_in, self.g_in), v_reset))
         
         # self.I =np.where(I<0.0, 0.0, I)
+        
+        if self.training_mode:
+            I[self.desired_output_neurons] = self.desired_output_currents[self.current_counter]
+            self.current_counter += 1
+        
         self.I = I
 
         return self.I
@@ -294,8 +308,8 @@ class RecurrentIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         # - increment by one the current factor of synapses that fired
         # - decrease by tau the conductance dynamics in any case
         self.g = np.where(has_fired,
-                               np.add(self.g, np.ones_like(self.g)),
-                               np.subtract(self.g, np.multiply(self.dt, np.divide(self.g, self.tau))))
+                          np.add(self.g, np.ones_like(self.g)*self.synaptic_scale),
+                          np.subtract(self.g, np.multiply(self.dt, np.divide(self.g, self.tau))))
        
         # We can now evaluate the recurrent conductance
         # I_rec = Σ wjgj(Ej -v(t))
@@ -322,7 +336,7 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         self.tau_minus = params['tau_minus']
         
         # The incoming spike times memory window
-        self.max_spikes = 600
+        self.max_spikes = 70
         self.t_spikes = np.full([self.max_spikes, params['no_connected_neurons']], 100000.0)
         
         self.last_spike = 1000.0
@@ -438,3 +452,38 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         self.u = np.add(u_reset, np.multiply(du, self.dt))
         
         return self.v, self.u
+    
+#%%
+class STDPRecurrentIzhikevichNeuronGroup(STDPIzhikevichNeuronGroup):
+    def __init__(self, params):
+        super(STDPRecurrentIzhikevichNeuronGroup, self).__init__(params)
+        self.W = params['W']
+        self.E = params['E']
+        
+        self.g = np.zeros(params['no_neurons'])
+
+        
+           
+    def get_inputs(self, has_fired, v_reset):
+        # First, update recurrent conductance dynamics:
+        # - increment by one the current factor of synapses that fired
+        # - decrease by tau the conductance dynamics in any case
+        self.g = np.where(has_fired,
+                          np.add(self.g, np.ones_like(self.g)*self.synaptic_scale),
+                          np.subtract(self.g, np.multiply(self.dt, np.divide(self.g, self.tau))))
+       
+        # We can now evaluate the recurrent conductance
+        # I_rec = Σ wjgj(Ej -v(t))
+        i_rec = np.einsum('ij,j->i', self.W, np.multiply(self.g, np.subtract(self.E, v_reset)))
+
+        # Get the synaptic input currents from parent
+        i_in = super(STDPRecurrentIzhikevichNeuronGroup, self).get_inputs(has_fired, v_reset)
+        
+        # The actual current is the sum of both currents
+        i_op = i_in + i_rec
+
+        # Store a reference to this operation for easier retrieval
+        self.I = i_op
+        
+        return i_op
+    
