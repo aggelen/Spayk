@@ -107,9 +107,11 @@ class SingleIzhikevichNeuron(Neuron):
 class NeuronGroup:
     def __init__(self):
         pass
-    
-    def __call__(self):
-        return self.forward()
+    def __call__(self, data=None):
+        if data is None:
+            return self.forward()
+        else:
+            return self.forward(data)
 
     def forward(self, data):
         pass
@@ -263,17 +265,30 @@ class SynapticIzhikevichNeuronGroup(IzhikevichNeuronGroup):
 
         self.syn_has_spiked = np.zeros((self.no_connected_neurons), dtype=bool)
         
-        self.synaptic_scale = (1.0 / self.no_connected_neurons)/2.0
+        # self.synaptic_scale = 1.0 / (20.0*self.no_connected_neurons)
+        # self.synaptic_scale = 1.0 / self.no_connected_neurons
+        self.synaptic_scale = 1.0
         
         super(SynapticIzhikevichNeuronGroup, self).__init__(params)
+        
+        self.g_history = []
+        
+    def get_inputs_cuba(self, has_fired, v_reset):
+           # self.W_in, np.multiply(self.g_in, self.E_in)
+           I = np.sum(np.multiply(self.W_in, self.syn_has_spiked))*12.0
+           self.I = I
+           return self.I
            
     def get_inputs(self, has_fired, v_reset):
         # First, update synaptic conductance dynamics:
         # - increment by one the current factor of synapses that fired
         # - decrease by tau the conductance dynamics in any case
         self.g_in  = np.where(self.syn_has_spiked,
-                              self.g_in + np.ones_like(self.g_in) * self.synaptic_scale,
+                               self.g_in + np.ones_like(self.g_in) * self.synaptic_scale,
+                              # self.g_in + np.ones_like(self.g_in)*23e-4,
                               np.subtract(self.g_in, np.multiply(self.dt, np.divide(self.g_in, self.tau))))
+        
+        self.g_history.append(self.g_in)
         
         # We can now evaluate the synaptic input currents
         # Isyn = Σ w_in(j)g_in(j)E_in(j) - (Σ w_in(j)g_in(j)).v(t)
@@ -336,7 +351,7 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         self.tau_minus = params['tau_minus']
         
         # The incoming spike times memory window
-        self.max_spikes = 70
+        self.max_spikes = 700
         self.t_spikes = np.full([self.max_spikes, params['no_connected_neurons']], 100000.0)
         
         self.last_spike = 1000.0
@@ -352,12 +367,28 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         # Increase the age of all the existing spikes by dt
         self.t_spikes += np.ones_like(self.t_spikes) * self.dt
         
-        new_spike_times = np.where(self.syn_has_spiked,
-                                    np.full(self.no_connected_neurons, 0.0),
-                                    np.full(self.no_connected_neurons, 100000.0))
+        # new_spike_times = np.where(self.syn_has_spiked,
+        #                             np.full(self.no_connected_neurons, 0.0),
+        #                             np.full(self.no_connected_neurons, 100000.0))
         
-        self.t_spikes = np.r_[new_spike_times.reshape(1,-1), self.t_spikes][:self.max_spikes, :]
+        # self.t_spikes = np.r_[new_spike_times.reshape(1,-1), self.t_spikes][:self.max_spikes, :]
         
+        
+        
+        # Increment last spike index (modulo max_spikes)
+        self.t_spikes_idx = np.mod(self.t_spikes_idx + 1, self.max_spikes)
+
+        # Create a list of coordinates to insert the new spikes
+        idx = np.full(self.no_connected_neurons, 1, dtype=np.int32) * self.t_spikes_idx
+        coords = np.stack([idx, np.arange(self.no_connected_neurons)], axis=1)
+
+        # Create a vector of new spike times (non-spikes are assigned a very high time)
+        new_spikes = np.where(self.syn_has_spiked,
+                              np.full(self.no_connected_neurons, 0.0),
+                              np.full(self.no_connected_neurons, 100000.))
+        
+        self.t_spikes[coords[:,0],coords[:,1]] = new_spikes
+                
         
         
     def LTP(self):
@@ -375,7 +406,9 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         new_w = self.W_in + rewards
         
         # Update with new weights clamped to [0,1]
-        self.W_in = np.clip(new_w, 0.0, 1.0)
+        # self.W_in = np.clip(new_w, 0.0, 1.0)
+        
+        self.W_in = new_w
     
     # Long Term synaptic Depression
     def LTD(self):
@@ -387,7 +420,7 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         # if any(self.syn_has_spiked):
         #     aykut = 5
         
-        penalties = np.where(self.syn_has_spiked,
+        penalties = np.where(np.logical_and(self.syn_has_spiked, np.logical_not(self.new_spikes)),
                              np.full(self.no_connected_neurons, self.a_minus) * np.exp(-(self.last_spike/self.tau_minus)),
                              np.full(self.no_connected_neurons, 0.0))
         
@@ -395,14 +428,17 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         new_w = self.W_in - penalties
         
         # Update the list of synapses that have spiked
-        self.new_spikes = self.new_spikes | self.syn_has_spiked
+        self.new_spikes = self.syn_has_spiked | self.new_spikes
         
         # Update with new weights clamped to [0,1]
-        self.W_in = np.clip(new_w, 0.0, 1.0)
+        # self.W_in = np.clip(new_w, 0.0, 1.0)
+        
+        self.W_in = new_w
         
     def firing_w_update(self):
         # Reset the list of synapses that have spiked
         # self.syn_has_spiked = np.full(self.no_connected_neurons, False).astype(bool)
+        self.new_spikes = np.full(self.no_connected_neurons, False).astype(bool)
         self.LTP()
 
     def standart_w_update(self):
@@ -416,25 +452,26 @@ class STDPIzhikevichNeuronGroup(SynapticIzhikevichNeuronGroup):
         
     def inject_spike_train(self, spike_train):
         self.syn_has_spiked = spike_train
-        self.update_spikes_times()
         
     def forward(self):
+        self.update_spikes_times()
         self.time += self.dt
+        self.last_spike += self.dt
         
         has_fired = np.greater_equal(self.v, np.full(self.no_neurons, self.v_threshold))
         v_reset = np.where(has_fired, self.C, self.v)
         u_reset = np.where(has_fired, np.add(self.u, self.D), self.u)
         
-        self.last_spike += self.dt
-        
         # STDP
         if any(has_fired):
-            self.last_spike = self.time
+            # self.new_spikes = np.full(self.no_connected_neurons, False, dtype=bool)
+            self.last_spike = 0.0
             self.firing_w_update()
         else:
             self.standart_w_update()
             
                 
+        # I = self.get_inputs(has_fired, v_reset)
         I = self.get_inputs(has_fired, v_reset)
         
         diff_eqn = np.square(v_reset)*0.04 + v_reset*5.0 + np.full(self.no_neurons, 140.0) + I - self.u
@@ -487,3 +524,157 @@ class STDPRecurrentIzhikevichNeuronGroup(STDPIzhikevichNeuronGroup):
         
         return i_op
     
+    
+#%%%% LIF
+class SpikeResponseLIF(NeuronGroup):
+    def __init__(self, params):
+        super().__init__()
+        
+        self.n_syn, self.w, self.v_rest = params['n_syn'], params['w'], params['v_rest']
+        self.tau_rest, self.tau_m, self.tau_s = params['tau_rest'], params['tau_m'], params['tau_s']
+        self.K, self.K1, self.K2 = params['K'], params['K1'], params['K2']
+        
+        self.dt = params['dt']
+        self.v = self.v_rest
+        self.t_rest = 0.0
+        
+        if 'v_th' in params.keys():
+            self.v_th = params['v_th']
+        else:
+            self.v_th = self.n_syn / 4
+        
+        if 'stdp_window' in params.keys():
+            self.stdp_window = params['stdp_window']
+        else:
+            self.stdp_window = 70
+            
+            
+        self.current_spikes = np.full(self.n_syn, False)
+
+        #self dt
+        self.spike_times = np.full((self.stdp_window, self.n_syn), 100000.0)
+
+        self.t_spikes_idx = self.n_syn - 1
+
+        self.time_since_last_spike = 1000.0
+        
+    def forward(self, current_spikes):
+        self.current_spikes = current_spikes
+        self.time_update(current_spikes)
+        
+        if self.t_rest:
+            v = self.rest()
+        else:
+            v = self.integrate()
+        
+        self.v = v
+        
+        return self.v
+                
+    def time_update(self, current_spikes):
+        self.time_since_last_spike += self.dt
+        self.spike_times += self.dt
+        
+        self.t_spikes_idx = np.mod(self.t_spikes_idx + 1, self.stdp_window)
+
+        idx = np.full(self.n_syn, 1, dtype=np.int32) * self.t_spikes_idx
+        coords = np.stack([idx, np.arange(self.n_syn)], axis=1)
+        
+        new_spikes = np.where(current_spikes,
+                              np.full(self.n_syn, 0.0),
+                              np.full(self.n_syn, 100000.0))
+        
+        self.spike_times[coords[:,0],coords[:,1]] = new_spikes
+        
+    def rest(self):
+        self.resting_w_update()
+        self.t_rest = np.maximum(self.t_rest - self.dt, 0.0)
+        return self.update_v() 
+    
+     
+    def integrate(self):
+        new_states = self.update_v() + self.synaptic_EPSP()
+        
+        if new_states > self.v_th:
+            return self.fire()
+        else:
+            return self.integration()
+            
+    def integration_w_update(self):
+        pass
+    
+    def firing_w_update(self):
+        pass
+    
+    def resting_w_update(self):
+        pass
+    
+    def integration(self):
+        self.integration_w_update()
+        return self.update_v() + self.synaptic_EPSP()
+        
+    
+    def fire(self):
+        self.firing_w_update()   
+        self.time_since_last_spike = 0.0
+        self.t_rest = self.tau_rest
+        
+        return self.update_v()
+        
+    def update_v(self):     #eta op
+        t = self.time_since_last_spike
+        psp = self.v_th * (self.K1*np.exp(-t/self.tau_m) - self.K2*(np.exp(-t/self.tau_m) - np.exp(-t/self.tau_s)))
+        return psp
+    
+    def EPSP(self):
+        t = self.spike_times
+        return self.K *(np.exp(-t/self.tau_m) - np.exp(-t/self.tau_s))
+    
+    def synaptic_EPSP(self):
+        EPSPs = np.where(np.logical_and(self.spike_times >=0, 
+                                              self.spike_times < self.time_since_last_spike - self.tau_rest),
+                               self.EPSP(),
+                               np.zeros_like(self.spike_times))
+                          
+        return np.sum(self.w * EPSPs)
+    
+class STDPSpikeResponseLIF(SpikeResponseLIF):
+    def __init__(self, params):
+        super().__init__(params)
+        self.a_plus, self.a_minus = params['stdp_params']['a_plus'], params['stdp_params']['a_minus']
+        self.tau_plus, self.tau_minus = params['stdp_params']['tau_plus'], params['stdp_params']['tau_minus']
+        
+        self.syn_has_spiked = np.full(self.n_syn, False)
+                
+    def LTD(self):
+        ltd = np.where(np.logical_and(self.current_spikes, np.logical_not(self.syn_has_spiked)),
+                       np.full(self.n_syn, self.a_minus) * np.exp(-(self.time_since_last_spike/self.tau_minus)),
+                       np.full(self.n_syn, 0.0))
+        
+        new_w = np.subtract(self.w, ltd)
+        
+        self.syn_has_spiked = self.syn_has_spiked | self.current_spikes
+        self.w = np.clip(new_w, 0.0, 1.0)
+    
+    def LTP(self):
+        # We only consider the last spike of each synapse from our memory
+        last_spikes = np.min(self.spike_times, axis=0)
+
+        ltp = np.where(last_spikes < self.time_since_last_spike,
+                       np.full(self.n_syn, self.a_plus) * np.exp(-(last_spikes/self.tau_plus)),
+                       np.full(self.n_syn, 0.0))
+        
+        new_w = self.w + ltp
+        self.w = np.clip(new_w, 0.0, 1.0)
+
+    def resting_w_update(self):
+        if self.time_since_last_spike < self.tau_minus*7:
+            self.LTD()
+            
+    def integration_w_update(self):
+        if self.time_since_last_spike < self.tau_minus*7:
+            self.LTD()
+    
+    def firing_w_update(self):
+        self.syn_has_spiked = np.full(self.n_syn, False)
+        self.LTP()

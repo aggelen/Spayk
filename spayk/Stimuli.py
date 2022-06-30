@@ -6,23 +6,89 @@ Created on Tue May 10 22:49:06 2022
 @author: aggelen
 """
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 class ConstantCurrentSource:
-    def __init__(self, mA):
-        self.mA = mA
-    
-    def I(self):
-        return self.mA
-    
-class ExternalCurrentSignal:
-    def __init__(self, signal):
-        self.signal = signal
-        self.idx = 0
+    def __init__(self, params):
+        ts, te, self.t_stop, amp = params['t_cur_start'], params['t_cur_end'], params['t_stop'], params['amplitudes']
+        self.dt = params['dt']
+        self.steps = np.arange(int(self.t_stop / self.dt))
+        
+        # signals = np.multiply(np.ones((ts.size, self.steps.size)), amp[:, np.newaxis])
+        signals = np.zeros((ts.size, self.steps.size))
+        ind_s, ind_e = ts/self.dt, te/self.dt
+        
+        for i in range(ts.size):
+            signals[i, int(ind_s[i]):int(ind_e[i])] = amp[i]
+            
+        self.currents = signals
+        self.current_step = 0
+        self.source_type = 'current'
+        
+        
+    def plot(self):
+        plt.figure()
+        plt.plot(np.arange(self.currents.shape[1])*self.dt, self.currents.T)
+        plt.title('Injected Currents')
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Current ()')
         
     def I(self):
-        I = self.signal[self.idx]
-        self.idx += 1
+        I = self.currents[:,self.current_step]
+        self.current_step += 1 
         return I
+    
+class PoissonSpikeTrain:
+    def __init__(self, dt, t_stop, no_neurons, spike_rates):
+        #dt in ms
+        self.dt = dt
+        self.t_stop = t_stop
+        self.no_neurons = no_neurons
+        self.steps = np.arange(int(t_stop / dt))
+        prob = np.random.uniform(0, 1, (self.steps.size, self.no_neurons))
+        self.spikes = np.less_equal(prob, np.array(spike_rates)*dt*1e-3).T
+        self.source_type = 'spike_train'
+        self.current_step = 0
+        
+    def current_spikes(self):
+        spikes = self.spikes[:,self.current_step]
+        self.current_step += 1 
+        return spikes
+        
+    def raster_plot(self):
+        f = plt.figure()
+        plt.title('Raster Plot')
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Neuron ID')
+        spike_times = []
+        
+        for spike_train in self.spikes:
+            spike_times.append(np.where(spike_train)[0]*self.dt)
+            
+        plt.eventplot(spike_times, color='k')
+        plt.xlim([0, int(self.spikes.shape[1]*self.dt)])
+        
+        ax = f.gca()
+        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    
+    
+# class ConstantCurrentSource:
+#     def __init__(self, mA):
+#         self.mA = mA
+    
+#     def I(self):
+#         return self.mA
+    
+# class ExternalCurrentSignal:
+#     def __init__(self, signal):
+#         self.signal = signal
+#         self.idx = 0
+        
+#     def I(self):
+#         I = self.signal[self.idx]
+#         self.idx += 1
+#         return I
         
 # A class that generates random spike trains
 class SpikeTrains(object):

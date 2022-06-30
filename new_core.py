@@ -138,7 +138,7 @@ w[ inh_2_exc ] = 2* w[ inh_2_exc]
 e = np.zeros((n), dtype=np.float32)
 e[p_neurons<0.2] = -85.0
 
-params = {'no_neurons': 1,
+params = {'no_neurons': n,
           'dynamics': 'regular_spiking',
           'no_connected_neurons': m,
           'tau': 10.0,
@@ -162,6 +162,7 @@ sim0.new_core_syn(network, sim_params)
 #%% Visualize
 import matplotlib.pyplot as plt
 v_out = sim0.results['v_out']
+v_out = np.array(v_out)
 dt = 0.1
 # Split between inhibitory and excitatory
 inh_v_out = np.where(p_neurons < 0.2, v_out, 0)
@@ -179,6 +180,22 @@ plt.xlabel('Time (msec)')
 steps, neurons = inh_spikes.T
 
 plt.scatter(steps*dt, neurons, s=3)
+
 # Plot excitatory spikes
-steps, neurons = exc_spikes.T
+# steps, neurons = exc_spikes.T
+# plt.scatter(steps*dt, neurons, s=3)
+
+#%%
+pss = sim0.results['presyn_spikes']
+pss = np.array(pss)
+dt = 0.1
+
+psss = np.argwhere(pss == True)
+
+plt.figure()
+# plt.axis([0, 1000, 0, n])
+
+# Plot inhibitory spikes
+steps, neurons = psss.T
+
 plt.scatter(steps*dt, neurons, s=3)

@@ -45,6 +45,7 @@ params = {'no_neurons': n,
           'dt': 0.1,
           'a_plus': 0.03125,
           'a_minus': 0.0265625,
+          # 'a_minus': 0.029,
           'tau_plus': 16.8,
           'tau_minus': 33.7}
 
@@ -52,7 +53,7 @@ params = {'no_neurons': n,
 network = STDPIzhikevichNeuronGroup(params)
 
 #%% Simulate
-t_stop = 1000
+t_stop = T
 sim_params = {'dt': 0.1,
               't_stop': t_stop,
               'frate': 0.002,
@@ -63,11 +64,33 @@ sim0.new_core_syn_experimental(network, sim_params)
 
 #%%
 plt.figure()
-plt.plot(np.array(sim0.results['v_out']))
+plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, np.array(sim0.results['v_out']))
+plt.xlabel('Time (ms)')
+plt.ylabel('Membrane Potential (mV)')
+plt.title('Membrane Potential')
 
 plt.figure()
-plt.plot(np.array(sim0.results['weight_means']))
+plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, np.array(sim0.results['I_in']))
+plt.xlabel('Time (ms)')
+plt.ylabel('Current (?pA)')
+plt.title('Input Current')
 
+plt.figure()
+plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, np.array(sim0.results['weight_means']))
+plt.xlabel('Time (ms)')
+plt.ylabel('Mean Weights')
+plt.title('STDP Mean Weight Change')
+
+plt.figure('G_in')
+ghist = np.array(network.g_history)
+# plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, ghist[:,0])
+# plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, ghist[:,10])
+plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, ghist[:,100])
+# plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, ghist[:,270])
+# plt.plot(np.arange(sim0.results['v_out'].__len__())*0.1, ghist[:,348])
+plt.xlabel('Time (ms)')
+plt.ylabel('Conductance (?nS)')
+plt.title('Randomly Selected Conductance')
 
 #%%
 # meanfr = np.sum(st35,0).mean()

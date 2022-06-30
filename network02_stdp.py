@@ -74,13 +74,15 @@ desired_output_currents[10000:15000,2] = 7
 with open('first_state_dict.pickle', 'rb') as handle:
     state_dict = pickle.load(handle)
 
-training_mode = True
-load_state_dict = False
-save_state_dict = True
-
-# training_mode = False
+# training_mode = True
 # load_state_dict = False
-# save_state_dict = False
+# save_state_dict = True
+
+training_mode = False
+load_state_dict = True
+save_state_dict = False
+
+epochs = 1
 
 #%% Network, 1000 neurons, %20: inhibitory
 n = 1000
@@ -100,7 +102,9 @@ w_in = np.zeros((n,m), dtype=np.float32)
 # w_in[ p_syn < 0.25 ] = 0.7
 # w_in[ p_syn < 0.25 ] = np.random.randint(1,6, w_in[ p_syn < 0.25 ].shape)/10.0
 
-w_in[ p_syn < 0.25 ] = 2*np.random.rand(w_in[ p_syn < 0.25 ].shape[0])-1
+w_in[ p_syn < 0.25 ] = 0.4*np.ones(w_in[ p_syn < 0.25 ].shape[0]) + 0.2*(2*np.random.rand(w_in[ p_syn < 0.25 ].shape[0])-1)
+
+# w_in[ p_syn < 0.25 ] = np.random.rand(w_in[ p_syn < 0.25 ].shape[0])
 
 # Randomly distribute recurrent connections
 w = np.zeros((n,n),  dtype=np.float32)
@@ -125,8 +129,8 @@ params = {'no_neurons': 1000,
           'W': w,
           'E': e,
           'dt': 0.1,
-          'a_plus': 0.03125e-3,
-          'a_minus': 0.0265625e-3,
+          'a_plus': 0.5*0.03125e-2,
+          'a_minus': 0.5*0.0265625e-2,
           'tau_plus': 16.8,
           'tau_minus': 33.7}
 
@@ -138,9 +142,9 @@ else:
 #%% Simulate
 t_stop = 1500
 sim_params = {'dt': 0.1,
-              't_stop': t_stop,
+              't_stop': epochs*t_stop,
               'frate': 0.002,
-              'stimuli': stimuli}
+              'stimuli': np.tile(stimuli,(epochs,1))}
 
 if load_state_dict: 
     network.W_in = state_dict['network_W_in']
@@ -184,7 +188,8 @@ a[p_neurons < 0.2] = 0.1
 d = np.full((n), 8.0, dtype=np.float32)
 d[p_neurons < 0.2] = 2.0
 
-w_in = 2*np.random.rand(n,m)-1
+# w_in = np.random.rand(n,m)
+w_in = 0.4*np.ones((n,m)) + 0.2*(2*np.random.rand(n,m)-1)
 
 # Randomly distribute recurrent connections
 w = np.zeros((n,n),  dtype=np.float32)
@@ -211,12 +216,12 @@ params = {'no_neurons': 6,
           'W': w,
           'E': e,
           'dt': 0.1,
-          'a_plus': 0.003125e-3,
-          'a_minus': 0.00265625e-3,
+          'a_plus': 0.5*0.003125,
+          'a_minus': 0.5*0.00265625,
           'tau_plus': 16.8,
           'tau_minus': 33.7,
           'training_mode': training_mode,
-          'desired_output_currents': ([0,1,2], desired_output_currents)}
+          'desired_output_currents': ([0,1,2], np.tile(desired_output_currents, (epochs,1)))}
 
 if training_mode:
     output_network = STDPRecurrentIzhikevichNeuronGroup(params)
@@ -224,9 +229,9 @@ else:
     output_network = RecurrentIzhikevichNeuronGroup(params)
     
 sim_params = {'dt': 0.1,
-              't_stop': 1500,
+              't_stop': epochs*t_stop,
               'frate': 0.002,
-              'stimuli': output_stimuli,
+              'stimuli': np.tile(output_stimuli,(epochs,1)),
               }
 
 if load_state_dict: 
@@ -277,11 +282,13 @@ if save_state_dict:
 plt.figure()
 net0_means = np.array(sim0.results['weight_means'])
 # plt.plot(net0_means[:,0])
-plt.plot(net0_means[:,1])
+plt.plot(net0_means)
+# plt.plot(net0_means[:,1])
 plt.legend(['Net0 W', 'Net0 Win'])
 
 plt.figure()
 net1_means = np.array(sim1.results['weight_means'])
 # plt.plot(net1_means[:,0])
-plt.plot(net1_means[:,1])
+plt.plot(net1_means)
+# plt.plot(net1_means[:,1])
 plt.legend(['Net1 W', 'Net1 Win'])

@@ -40,7 +40,7 @@ spike_trains = SpikeTrains(n_syn)
 stimuli = spike_trains.add_spikes(int(T/dt))
 
 # %% 3. Create Model
-n = 1
+n = 10
 m = 500
 
 w_in = 0.7*np.ones((n,m), dtype=np.float32)

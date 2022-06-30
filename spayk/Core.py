@@ -70,6 +70,9 @@ class Simulator:
                     # No synapse activity during that period
                     p_syn_spike = np.zeros((tissue.no_connected_neurons), dtype=bool)
             
+            if np.sum(p_syn_spike) > 0:
+                aykut = 1
+            
             tissue.inject_spike_train(p_syn_spike)
             v, u = tissue()
             
@@ -201,4 +204,42 @@ class Simulator:
         organization.vs = vs
         organization.us = us
         organization.keep_log(spikes, Is)
+        
+    def integrate_and_fire(self, tissue, params):
+        self.results = {'I_in': [],
+                        'v_out': []}
+        
+        dt = params['dt']
+        T = params['t_stop']
+        
+        steps = range(int(T / dt))
+        for step in tqdm(steps):
+            p_syn_spikes = params['stimuli'][step]
+            
+            v = tissue(p_syn_spikes)
+            self.results['v_out'].append(v)
+            
+    def integrate_and_fire_stdp(self, tissue, params):
+        self.results = {'I_in': [],
+                        'v_out': [],
+                        'delta_w': [],
+                        'mean_w': []}
+        
+        dt = params['dt']
+        T = params['t_stop']
+        steps = range(int(T / dt))
+        w_prev = tissue.w
+        
+        for step in tqdm(steps):
+            p_syn_spikes = params['stimuli'][step]
+            
+            v = tissue(p_syn_spikes)
+            self.results['v_out'].append(v)
+            self.results['mean_w'].append(tissue.w.mean())
+            
+            w_next = tissue.w
+            delta_weights = w_next - w_prev
+            w_prev = w_next
+            self.results['delta_w'].append(delta_weights)
+            
             
