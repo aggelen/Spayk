@@ -28,6 +28,9 @@ class NeuronGroup:
     
     def forward(self, data):
         pass
+    
+    def weight_update(self, params):
+        pass
 
 # Models    
 class IzhikevichNeuronGroup(NeuronGroup):
@@ -91,19 +94,100 @@ class IzhikevichNeuronGroup(NeuronGroup):
 class SRMLIFNeuronGroup(NeuronGroup):
     def __init__(self, params):
         super().__init__()
-        self.no_neurons = params['no_neurons']
+        self.configure(params)
+        self.current_spikes = None
         
+        if params is None:
+            #default
+            pass
+        else:
+            pass
+        
+    def configure(self, params):
+        self.no_neurons = params['no_neurons']
+        self.n_syn = params['n_synapses']
+        self.dt = params['dt']
+        self.t_rest = 0.0
+        
+        self.effective_time_window = 100
+        
+        # presyn_spike_time -> tj, postsyn_spike_time -> ti
+        self.t_ti = 1e3
+        self.t_tj = np.full((self.effective_time_window, self.n_syn), 100000.0)
+        self.spike_idx = self.n_syn - 1
+        
+        self.w = params['w'] if 'w' in params.keys() else np.full((self.n_syn), 0.475, dtype=np.float32)
+        
+        self.v_rest = params['v_rest'] if 'v_rest' in params.keys() else 0.0
+        self.v_th = params['v_th'] if 'v_th' in params.keys() else self.n_syn / 4
+        self.v = self.v_rest
+        
+        self.tau_m = params['tau_m'] if 'tau_m' in params.keys() else 10.0
+        self.tau_s = params['tau_s'] if 'tau_s' in params.keys() else 2.5
+        self.tau_rest = params['tau_rest'] if 'tau_rest' in params.keys() else 1.0
+        
+        self.K = params['K'] if 'K' in params.keys() else 2.1
+        self.K1 = params['K1'] if 'K1' in params.keys() else 2.0
+        self.K2 = params['K2'] if 'K2' in params.keys() else 4.0
+                
     def autoconnect(self):
         pass
     
     def set_architecture(self):
         pass
 
+    def forward(self, current_spikes):        
+        self.current_spikes = current_spikes
+        
+        # update time
+        self.t_ti += self.dt
+        self.t_tj += self.dt
+        
+        self.spike_idx = np.mod(self.spike_idx + 1, self.effective_time_window)
 
+        idx = np.full(self.n_syn, 1, dtype=np.int32) * self.spike_idx
+        coords = np.stack([idx, np.arange(self.n_syn)], axis=1)
+        
+        new_spikes = np.where(current_spikes,
+                              np.full(self.n_syn, 0.0),
+                              np.full(self.n_syn, 100000.0))
+        
+        self.t_tj[coords[:,0],coords[:,1]] = new_spikes
+        
+        if self.t_rest > 0.0:
+            self.v = self.rest()
+        else:
+            self.v = self.integrate()
 
+        return self.v
 
+    def rest(self):
+        self.t_rest = np.maximum(self.t_rest - self.dt, 0.0)
+        neg_t_ti = -self.t_ti
+        return self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
+    
+    def integrate(self):
+        # presyn_spike_time -> tj, postsyn_spike_time -> ti
+        neg_t_ti, neg_t_tj = -self.t_ti, -self.t_tj
+        spike_response = self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
+        EPSPs = self.K *(np.exp(neg_t_tj/self.tau_m) - np.exp(neg_t_tj/self.tau_s))
+        
+        heaviside_cond = np.logical_and(self.t_tj >=0, self.t_tj < self.t_ti - self.tau_rest)
+        EPSPs_Heaviside = np.where(heaviside_cond, EPSPs, np.zeros_like(self.t_tj))
+        
+        v = spike_response + np.sum(self.w * EPSPs_Heaviside)
+        
+        # fire?
+        if v > self.v_th:
+            return self.fire()
+        else:
+            return v
 
-
+    def fire(self): 
+        self.t_ti = 0.0
+        self.t_rest = self.tau_rest
+        neg_t_ti = -self.t_ti
+        return self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
 
 
 

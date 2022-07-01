@@ -21,9 +21,18 @@ class Logger:
         self.v_history.append(v)
         self.I_history.append(I)
         
-    def plot_v(self, sel_idx=None):  
-        vs = np.array(self.v_history)
+    def log_v(self, v):
+        self.v_history.append(v)
         
+    def plot_v(self, sel_idx=None):  
+        if isinstance(self.v_history, list):
+            vs = np.array(self.v_history, dtype=np.float32)
+        else:
+            vs = self.v_history
+            
+        if vs.shape.__len__() == 1:
+            vs = np.expand_dims(vs, axis=1)
+            
         if sel_idx is not None:
             vs_sel = vs.T[sel_idx]
             fig, axes = plt.subplots(nrows=sel_idx.__len__(), ncols=1, sharex=True)
@@ -35,11 +44,14 @@ class Logger:
             # plt.tight_layout()
         else:
             fig, axes = plt.subplots(nrows=vs.shape[1], ncols=1, sharex=True)
-            i = 0
-            for ax in axes:
-                ax.plot(np.arange(vs.shape[0])*self.dt, vs.T[i])
-                ax.set_title("Neuron #" + str(i))
-                i += 1
+            if isinstance(axes, list):
+                i = 0
+                for ax in axes:
+                    ax.plot(np.arange(vs.shape[0])*self.dt, vs.T[i])
+                    ax.set_title("Neuron #" + str(i))
+                    i += 1
+            else:
+                axes.plot(np.arange(vs.shape[0])*self.dt, vs)
             # plt.tight_layout()
             
         # plt.xlabel('Time (ms)')
@@ -88,15 +100,11 @@ class Tissue:
             for step in tqdm(stimuli.steps):
                 t = step*stimuli.dt
                 input_spikes = stimuli.current_spikes()
-                self.neuron_group.inject_current(inj_current)
-                v, _ = self.neuron_group()
-                self.logger.log(v, inj_current)
+                                
+                v = self.neuron_group(input_spikes)
+                self.logger.log_v(v)
         else:
             raise Exception('Invalid Stimuli Source Type')
-        
-        
-            
-            
 
 # class Tissue:
 #     def __init__(self, connected=None, stdp_status=True, name=''):

@@ -39,6 +39,25 @@ class ConstantCurrentSource:
         self.current_step += 1 
         return I
     
+class ExternalSpikeTrain:
+    def __init__(self, dt, t_stop, no_neurons, spike_train):
+        self.dt = dt
+        self.t_stop = t_stop
+        self.no_neurons = no_neurons
+        self.steps = np.arange(int(t_stop / dt))
+        
+        self.spikes = spike_train
+        
+        self.source_type = 'spike_train'
+        self.current_step = 0
+        
+    def current_spikes(self):
+        if self.spikes.shape.__len__() == 1:
+            self.spikes = np.expand_dims(self.spikes, axis=0)
+        spikes = self.spikes[:,self.current_step]
+        self.current_step += 1 
+        return spikes
+        
 class PoissonSpikeTrain:
     def __init__(self, dt, t_stop, no_neurons, spike_rates):
         #dt in ms
@@ -80,15 +99,15 @@ class PoissonSpikeTrain:
 #     def I(self):
 #         return self.mA
     
-# class ExternalCurrentSignal:
-#     def __init__(self, signal):
-#         self.signal = signal
-#         self.idx = 0
+class ExternalCurrentSignal:
+    def __init__(self, signal):
+        self.signal = signal
+        self.idx = 0
         
-#     def I(self):
-#         I = self.signal[self.idx]
-#         self.idx += 1
-#         return I
+    def I(self):
+        I = self.signal[self.idx]
+        self.idx += 1
+        return I
         
 # A class that generates random spike trains
 class SpikeTrains(object):
