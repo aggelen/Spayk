@@ -9,6 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from tqdm import tqdm
+import seaborn as sns
+import matplotlib
+import itertools
 
 class Logger:
     def __init__(self, steps, dt):
@@ -44,7 +47,7 @@ class Logger:
             # plt.tight_layout()
         else:
             fig, axes = plt.subplots(nrows=vs.shape[1], ncols=1, sharex=True)
-            if isinstance(axes, list):
+            if isinstance(axes, np.ndarray):
                 i = 0
                 for ax in axes:
                     ax.plot(np.arange(vs.shape[0])*self.dt, vs.T[i])
@@ -59,22 +62,50 @@ class Logger:
         fig.text(0.5, 0.04, 'Time (ms)', ha='center')
         fig.text(0.04, 0.5, 'Memb. Pot. (mV)', va='center', rotation='vertical')
             
-    def raster_plot(self):
+    def raster_plot(self, color_array=None):
         f = plt.figure()
         plt.title('Raster Plot')
         plt.xlabel('Time (ms)')
         plt.ylabel('Neuron ID')
-        spike_times = []
-        spikes = (np.array(self.v_history) > 34.0).T
+        # spike_times = []
+        spikes = (np.array(self.v_history) == 35.0).T
         
-        for spike_train in spikes:
-            spike_times.append(np.where(spike_train)[0]*self.dt)
+        mean_spike_rate = np.sum(spikes,1).mean()
+        print('Output Mean Spike Rate: {}'.format(mean_spike_rate))
+        
+        spike_loc = np.argwhere(spikes)
+        
+        sns.set()
+        palette = itertools.cycle(sns.color_palette())
+        
+        if color_array is not None:
+            # c = plt.cm.Set1(color_array[spike_loc[:,0]])
+            colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+            c = []
+            for k in color_array[spike_loc[:,0]]:
+                c.append(colors[int(k)])
+
+        else:
+            c = 'k'
+        plt.scatter(spike_loc[:,1]*self.dt, spike_loc[:,0], s=3, color=c)
+        
+        # for spike_train in spikes:
+        #     spike_times.append(np.where(spike_train)[0]*self.dt)
             
-        plt.eventplot(spike_times, color='k')
-        plt.xlim([0, int(spikes.shape[1]*self.dt)])
+        # if color_array is not None:
+        #     # c = plt.cm.Set1(color_array)
+        #     c = []
+        #     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+        #     for i in color_array:
+        #         c.append(colors[int(i)])
+        # else:
+        #     c = 'k'
+            
+        # plt.eventplot(spike_times, colors=c, linewidths=2.5)
+        # plt.xlim([0, int(spikes.shape[1]*self.dt)])
         
-        ax = f.gca()
-        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+        # ax = f.gca()
+        # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
         
         
@@ -101,8 +132,11 @@ class Tissue:
                 t = step*stimuli.dt
                 input_spikes = stimuli.current_spikes()
                                 
-                v = self.neuron_group(input_spikes)
-                self.logger.log_v(v)
+                out = self.neuron_group(input_spikes)
+                if len(out) == 1:
+                    self.logger.log_v(out)
+                else:
+                    self.logger.log_v(out[0])
         else:
             raise Exception('Invalid Stimuli Source Type')
 

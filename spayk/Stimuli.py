@@ -27,6 +27,8 @@ class ConstantCurrentSource:
         self.source_type = 'current'
         
         
+        
+        
     def plot(self):
         plt.figure()
         plt.plot(np.arange(self.currents.shape[1])*self.dt, self.currents.T)
@@ -69,6 +71,9 @@ class PoissonSpikeTrain:
         self.spikes = np.less_equal(prob, np.array(spike_rates)*dt*1e-3).T
         self.source_type = 'spike_train'
         self.current_step = 0
+        
+        self.mean_spike_rate = np.sum(self.spikes,1).mean()
+        print('Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
         
     def current_spikes(self):
         spikes = self.spikes[:,self.current_step]

@@ -10,7 +10,7 @@ import sys
 sys.path.append('..')
 
 from spayk.Organization import Tissue
-from spayk.Models import SRMLIFNeuronGroup
+from spayk.Models import SRMLIFNeuron
 from spayk.Stimuli import PoissonSpikeTrain
 
 import numpy as np
@@ -18,11 +18,10 @@ import matplotlib.pyplot as plt
 plt.close('all')
 
 # create two neurons as a group with LIF/SRM model
-group_params = {'no_neurons': 2,
-                'n_synapses': 10,
+group_params = {'n_synapses': 10,
                 'dt': 1.0}
 
-srm_neuron_group = SRMLIFNeuronGroup(group_params)
+srm_neuron_group = SRMLIFNeuron(group_params)
 
 # bind neuron groups to a tissue
 test_tissue = Tissue([srm_neuron_group])

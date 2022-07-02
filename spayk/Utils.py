@@ -18,7 +18,7 @@ neuron_dynamics = {'regular_spiking': 0,
 def dynamics_selector(mode):
     if mode == 'regular_spiking':
         a = 0.02
-        b = 0.25
+        b = 0.2
         c = -65
         d = 8
         return a,b,c,d
@@ -50,11 +50,11 @@ def dynamics_selector(mode):
         a = 0.1
         b = 0.25
         c = -65
-        d = 8
+        d = 2
         return a,b,c,d
     elif mode == 'low_threshold_spiking':
         a = 0.02
-        b = 0.2
+        b = 0.25
         c = -65
         d = 2
         return a,b,c,d
@@ -65,12 +65,12 @@ def dynamics_selector(mode):
 
 def izhikevich_dynamics_selector(s):
     c0, c1, c2, c3, c4, c5, c6 = s == 0, s == 1, s == 2, s == 3, s == 4, s == 5, s == 6
-    
+  # rs, ib, ch, fs, tc, rz, lth
     cond_list = [c3, c5]  
     a_list = [np.full(s.shape, 0.1), np.full(s.shape, 0.1)]
     A = np.select(cond_list, a_list, 0.02)
     
-    cond_list = [c0, c4, c5]  
+    cond_list = [c4, c5, c6]  
     b_list = [np.full(s.shape, 0.25), np.full(s.shape, 0.25), np.full(s.shape, 0.25)]
     B = np.select(cond_list, b_list, 0.2)
     
@@ -78,8 +78,8 @@ def izhikevich_dynamics_selector(s):
     c_list = [np.full(s.shape, -55), np.full(s.shape, -50)]
     C = np.select(cond_list, c_list, -65)
     
-    cond_list = [c0,c1,c4,c5]  
-    d_list = [np.full(s.shape, 8.0), np.full(s.shape, 4.0), np.full(s.shape, 0.05), np.full(s.shape, 8.0)]
+    cond_list = [c0,c1,c4]  
+    d_list = [np.full(s.shape, 8.0), np.full(s.shape, 4.0), np.full(s.shape, 0.05)]
     D = np.select(cond_list, d_list, 2.0)
     return A,B,C,D
 

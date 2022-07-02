@@ -7,6 +7,7 @@ Created on Tue May 10 22:17:14 2022
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from spayk.Utils import izhikevich_dynamics_selector
 
 #%% Base Classes
 class Neuron:
@@ -37,6 +38,14 @@ class IzhikevichNeuronGroup(NeuronGroup):
     def __init__(self, params):
         super().__init__()
         self.no_neurons = params['no_neurons']
+        
+        self.behaviour = params['behaviour'] if 'behaviour' in params.keys() else 'basic'
+        
+        if 'behaviour' in params.keys():
+            self.behaviour = params['behaviour']
+        else:
+            self.behaviour = 'basic'
+        
         self.set_dynamics(params)
         
         self.v_threshold = 35.0
@@ -47,9 +56,25 @@ class IzhikevichNeuronGroup(NeuronGroup):
         
         self.I_inj = 0
         
+        if self.behaviour == 'synaptic' or self.behaviour == 'recurrent':
+            if 'no_syn' in params.keys():
+                self.no_syn = params['no_syn']
+            else:
+                raise Exception('Synaptic behaviour needs no_syn parameter. (# snyaptic conns)')
+            self.syn_tau = params['syn_tau'] if 'syn_tau' in params.keys() else 10.0
+            self.E = np.zeros((self.no_syn), dtype=np.float32)
+            self.g = np.zeros((self.no_syn), dtype=np.float32)
+            # self.synaptic_scale = (1.0 / self.no_syn)*20    # if %20 input?
+            self.g_history = []
+            
+        if self.behaviour == 'recurrent':
+            self.g_rec = np.zeros((self.no_neurons), dtype=np.float32)
+            self.E_rec = np.zeros((self.no_neurons), dtype=np.float32)
+        
+        
     def set_dynamics(self, params):  
         #regular
-        a, b, c, d = 0.02, 0.25, -65, 8
+        a, b, c, d = 0.02, 0.2, -65, 8
         
         if not 'A' in params.keys():
             self.A = np.full((self.no_neurons), a, dtype=np.float32)
@@ -69,20 +94,62 @@ class IzhikevichNeuronGroup(NeuronGroup):
             self.D = params['D']
         
     def autoconnect(self):
-        pass
+        self.w = np.random.uniform(0.245, 0.865, (self.no_neurons, self.no_syn)) / self.no_syn
     
-    def set_architecture(self):
-        pass
+    def set_architecture(self, params):
+        if 'dynamics' in params.keys():
+            self.A, B, self.C, self.D = izhikevich_dynamics_selector(params['dynamics'])
+            # pass
+        if 'w' in params.keys():
+            self.w = params['w']
+            
+        if 'E_rec' in params.keys():
+            self.E_rec = params['E_rec']
+            
+        if 'w_rec' in params.keys():
+            self.w_rec = params['w_rec']
     
     def inject_current(self, I):
         self.I_inj = I
+        
+    def synaptic_current(self, current_spikes):
+        self.g  = np.where(current_spikes,
+                           self.g + np.ones_like(self.g),
+                           self.g - np.multiply(self.dt, self.g/self.syn_tau))
+        
+        self.g_history.append(self.g)
+        
+        I_syn = np.einsum('nm,m->n', self.w, np.multiply(self.g, self.E)) - np.multiply(np.einsum('nm,m->n', self.w, self.g), self.v)
+        return I_syn
     
-    def forward(self):        
+    def recurrent_syn_current(self, current_spikes, fired):
+        I_syn = self.synaptic_current(current_spikes)
+        
+        self.g_rec = np.where(fired,
+                          self.g_rec + np.ones_like(self.g_rec),
+                          self.g_rec - np.multiply(self.dt, self.g_rec/self.syn_tau))
+        
+        I_rec = np.einsum('ij,j->i', self.w_rec, np.multiply(self.g_rec, self.E_rec - self.v))
+        
+        return I_syn + I_rec
+    
+    
+        
+
+    
+    def forward(self, current_spikes=None):        
         fired = np.greater_equal(self.v, np.full(self.no_neurons, self.v_threshold))
         v = np.where(fired, self.C, self.v)
         u = np.where(fired, np.add(self.u, self.D), self.u)
         
-        diff_eqn = np.square(v)*0.04 + v*5.0 + np.full(self.no_neurons, 140.0) + self.I_inj - self.u
+        if self.behaviour == 'basic':
+            I = self.I_inj
+        elif self.behaviour == 'synaptic':
+            I = self.synaptic_current(current_spikes)
+        elif self.behaviour == 'recurrent':
+            I = self.recurrent_syn_current(current_spikes, fired)
+        
+        diff_eqn = np.square(v)*0.04 + v*5.0 + np.full(self.no_neurons, 140.0) + I - self.u
         dv = np.where(fired, np.zeros_like(self.v), diff_eqn)
         du = np.where(fired, np.zeros_like(self.v), np.multiply(self.A, (np.multiply(self.B, v) - u)))
 
@@ -91,7 +158,7 @@ class IzhikevichNeuronGroup(NeuronGroup):
         
         return self.v, self.u
     
-class SRMLIFNeuronGroup(NeuronGroup):
+class SRMLIFNeuron(NeuronGroup):
     def __init__(self, params):
         super().__init__()
         self.configure(params)
@@ -104,7 +171,6 @@ class SRMLIFNeuronGroup(NeuronGroup):
             pass
         
     def configure(self, params):
-        self.no_neurons = params['no_neurons']
         self.n_syn = params['n_synapses']
         self.dt = params['dt']
         self.t_rest = 0.0
@@ -116,8 +182,9 @@ class SRMLIFNeuronGroup(NeuronGroup):
         self.t_tj = np.full((self.effective_time_window, self.n_syn), 100000.0)
         self.spike_idx = self.n_syn - 1
         
-        self.w = params['w'] if 'w' in params.keys() else np.full((self.n_syn), 0.475, dtype=np.float32)
-        
+        # self.w = params['w'] if 'w' in params.keys() else np.full((self.n_syn), 0.475, dtype=np.float32)
+        self.w = params['w'] if 'w' in params.keys() else np.random.uniform(0.125, 0.565, self.n_syn)
+
         self.v_rest = params['v_rest'] if 'v_rest' in params.keys() else 0.0
         self.v_th = params['v_th'] if 'v_th' in params.keys() else self.n_syn / 4
         self.v = self.v_rest
@@ -189,8 +256,21 @@ class SRMLIFNeuronGroup(NeuronGroup):
         neg_t_ti = -self.t_ti
         return self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
 
-
-
+class SRMLIFNeuronGroup(NeuronGroup):
+    def __init__(self, group_params, neuron_params):
+        super().__init__()
+        self.no_neurons = group_params['no_neurons']
+        self.neurons = []
+        for i in range(self.no_neurons):
+            self.neurons.append(SRMLIFNeuron(neuron_params))
+    
+    def forward(self, current_spikes):
+        vs = []
+        for neuron in self.neurons:
+            v = neuron(current_spikes)
+            vs.append(v)
+        
+        return vs
 
 # class IzhikevichNeuronGroup(NeuronGroup):
 #     neuron_dynamics = {'regular_spiking': 0,
