@@ -30,7 +30,7 @@ class NeuronGroup:
     def forward(self, data):
         pass
     
-    def weight_update(self, params):
+    def weight_update(self, params=None):
         pass
 
 # Models    
@@ -133,10 +133,6 @@ class IzhikevichNeuronGroup(NeuronGroup):
         
         return I_syn + I_rec
     
-    
-        
-
-    
     def forward(self, current_spikes=None):        
         fired = np.greater_equal(self.v, np.full(self.no_neurons, self.v_threshold))
         v = np.where(fired, self.C, self.v)
@@ -196,7 +192,14 @@ class SRMLIFNeuron(NeuronGroup):
         self.K = params['K'] if 'K' in params.keys() else 2.1
         self.K1 = params['K1'] if 'K1' in params.keys() else 2.0
         self.K2 = params['K2'] if 'K2' in params.keys() else 4.0
-                
+        
+        self.stdp_status = params['stdp_on'] if 'stdp_on' in params.keys() else False
+        
+        if self.stdp_status:
+            self.a_plus, self.a_minus = params['stdp_params']['a_plus'], params['stdp_params']['a_minus']
+            self.tau_plus, self.tau_minus = params['stdp_params']['tau_plus'], params['stdp_params']['tau_minus']
+            self.presyn_spikes = np.full(self.n_syn, False)
+            
     def autoconnect(self):
         pass
     
@@ -229,6 +232,10 @@ class SRMLIFNeuron(NeuronGroup):
         return self.v
 
     def rest(self):
+        if self.stdp_status:
+            if self.t_ti < self.tau_minus*7:
+                self.LTD()
+            
         self.t_rest = np.maximum(self.t_rest - self.dt, 0.0)
         neg_t_ti = -self.t_ti
         return self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
@@ -248,13 +255,40 @@ class SRMLIFNeuron(NeuronGroup):
         if v > self.v_th:
             return self.fire()
         else:
+            if self.stdp_status:
+                if self.t_ti < self.tau_minus*7:
+                    self.LTD()
             return v
 
     def fire(self): 
+        if self.stdp_status:
+            self.presyn_spikes = np.full(self.n_syn, False)
+            self.LTP()
+    
         self.t_ti = 0.0
         self.t_rest = self.tau_rest
         neg_t_ti = -self.t_ti
         return self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
+    
+    def LTD(self):
+        ltd = np.where(np.logical_and(self.current_spikes, np.logical_not(self.presyn_spikes)),
+                       np.full(self.n_syn, self.a_minus) * np.exp(-(self.t_ti/self.tau_minus)),
+                       np.full(self.n_syn, 0.0))
+        
+        new_w = np.subtract(self.w, ltd)
+        
+        self.presyn_spikes = self.presyn_spikes | self.current_spikes
+        self.w = np.clip(new_w, 0.0, 1.0)
+    
+    def LTP(self):
+        last_spikes = np.min(self.t_tj, axis=0)
+
+        ltp = np.where(last_spikes < self.t_ti,
+                       np.full(self.n_syn, self.a_plus) * np.exp(-(last_spikes/self.tau_plus)),
+                       np.full(self.n_syn, 0.0))
+        
+        new_w = self.w + ltp
+        self.w = np.clip(new_w, 0.0, 1.0)
 
 class SRMLIFNeuronGroup(NeuronGroup):
     def __init__(self, group_params, neuron_params):

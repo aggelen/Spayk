@@ -133,7 +133,7 @@ class Tissue:
                 input_spikes = stimuli.current_spikes()
                                 
                 out = self.neuron_group(input_spikes)
-                if len(out) == 1:
+                if isinstance(out, np.float64):
                     self.logger.log_v(out)
                 else:
                     self.logger.log_v(out[0])

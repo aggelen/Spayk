@@ -8,6 +8,7 @@ Created on Tue May 10 22:49:06 2022
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+import seaborn as sns
 
 class ConstantCurrentSource:
     def __init__(self, params):
@@ -40,9 +41,47 @@ class ConstantCurrentSource:
         I = self.currents[:,self.current_step]
         self.current_step += 1 
         return I
+
+class SpikeTrain:
+    def __init__(self):
+        pass
     
-class ExternalSpikeTrain:
+    def current_spikes(self):
+        spikes = self.spikes[:,self.current_step]
+        self.current_step += 1 
+        return spikes
+        
+    def raster_plot(self, color_array=None, first_n=None):
+        f = plt.figure()
+        plt.title('Raster Plot')
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Neuron ID')
+        # spike_times = []
+        
+        mean_spike_rate = np.sum(self.spikes,1).mean() / (self.t_stop/1000)
+        print('Output Mean Spike Rate: {}'.format(mean_spike_rate))
+        
+        if first_n is not None:
+            spike_loc = np.argwhere(self.spikes[:first_n,:])
+        else:
+            spike_loc = np.argwhere(self.spikes)
+        
+        sns.set()
+        colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+        if color_array is not None:
+            # c = plt.cm.Set1(color_array[spike_loc[:,0]])
+            c = []
+            for k in color_array[spike_loc[:,0]]:
+                c.append(colors[int(k)])
+        else:
+            c = colors[0]
+            
+        plt.scatter(spike_loc[:,1]*self.dt, spike_loc[:,0], s=3, color=c)
+    
+
+class ExternalSpikeTrain(SpikeTrain):
     def __init__(self, dt, t_stop, no_neurons, spike_train):
+        super().__init__()
         self.dt = dt
         self.t_stop = t_stop
         self.no_neurons = no_neurons
@@ -53,6 +92,9 @@ class ExternalSpikeTrain:
         self.source_type = 'spike_train'
         self.current_step = 0
         
+        self.mean_spike_rate = np.sum(self.spikes,1).mean() / (self.t_stop/1000)
+        print('Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
+        
     def current_spikes(self):
         if self.spikes.shape.__len__() == 1:
             self.spikes = np.expand_dims(self.spikes, axis=0)
@@ -60,41 +102,57 @@ class ExternalSpikeTrain:
         self.current_step += 1 
         return spikes
         
-class PoissonSpikeTrain:
+class PoissonSpikeTrain(SpikeTrain):
     def __init__(self, dt, t_stop, no_neurons, spike_rates):
+        super().__init__()
         #dt in ms
         self.dt = dt
         self.t_stop = t_stop
         self.no_neurons = no_neurons
         self.steps = np.arange(int(t_stop / dt))
         prob = np.random.uniform(0, 1, (self.steps.size, self.no_neurons))
-        self.spikes = np.less_equal(prob, np.array(spike_rates)*dt*1e-3).T
+        self.spikes = np.less(prob, np.array(spike_rates)*dt*1e-3).T
         self.source_type = 'spike_train'
         self.current_step = 0
         
-        self.mean_spike_rate = np.sum(self.spikes,1).mean()
+        self.mean_spike_rate = np.sum(self.spikes,1).mean() / (self.t_stop/1000)
         print('Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
         
-    def current_spikes(self):
-        spikes = self.spikes[:,self.current_step]
-        self.current_step += 1 
-        return spikes
-        
-    def raster_plot(self):
-        f = plt.figure()
-        plt.title('Raster Plot')
-        plt.xlabel('Time (ms)')
-        plt.ylabel('Neuron ID')
-        spike_times = []
-        
-        for spike_train in self.spikes:
-            spike_times.append(np.where(spike_train)[0]*self.dt)
-            
-        plt.eventplot(spike_times, color='k')
-        plt.xlim([0, int(self.spikes.shape[1]*self.dt)])
-        
-        ax = f.gca()
-        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    
+# r = np.random.uniform(0, 90, size=(no_neurons))
+# s = np.random.uniform(-1800, 1800, size=(no_neurons))
+# spike_train = []
+# for t in range(t_stop):
+#     prob = np.random.uniform(0, 1, r.shape)
+#     spikes = np.less(prob, np.array(r)*dt*1e-3)
+#     spike_train.append(spikes)
+#     r = np.clip(r + s*dt*1e-3 , 0, 90)
+#     ds = np.random.uniform(-360, 360, size=(no_neurons))
+#     s = np.clip(s + ds, -1800, 1800)
+
+# spike_train = np.array(spike_train).T
+# repeating_pattern = spike_train[:1000, 25:75]
+
+# repeat_times = [25]
+# last_repeat_time = 25
+# for t in range(t_stop-50):
+#     if t > last_repeat_time + np.random.uniform(100,250,1):
+#         not_placed = True
+#         while(not_placed):
+#             if np.random.rand() < 0.25:
+#                 repeat_times.append(t)
+#                 last_repeat_time = t
+#                 not_placed = False
+
+#                 spike_train[:1000, t:t+50] = np.copy(repeating_pattern)
+
+# repeat_times = np.array(repeat_times)
+
+# #jitter
+# jitter_prob = np.random.uniform(0,1,spike_train.shape)
+# jitter = jitter_prob < 10*dt*1e-3
+
+# spike_train = np.logical_or(spike_train, jitter)
     
     
 # class ConstantCurrentSource:
