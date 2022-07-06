@@ -11,7 +11,7 @@ sys.path.append('..')
 
 from spayk.Organization import Tissue
 from spayk.Models import SRMLIFNeuron
-from spayk.Stimuli import ExternalSpikeTrain
+from spayk.Stimuli import ExternalSpikeTrain, Masquelier2008SpikeTrain
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,48 +41,39 @@ for t in range(t_stop):
 spike_train = np.array(spike_train).T
 
 #%% 50ms check
-
-# t = np.arange(0,t_stop+50,50)
-# for i in range(t.size - 1):
-#     chunk50ms = spike_train[:, t[i]:t[i+1]]
-#     no_spike_idx = np.sum(chunk50ms, 1) == 0
-    
-#     template = np.zeros_like(chunk50ms[no_spike_idx]).astype(bool)
-#     template[:,25] = True
-    
-#     chunk50ms[no_spike_idx] = template
-
 for t in range(t_stop):
-    if t > 50:
-        no_firing_idx = np.count_nonzero(spike_train[:,t-50:t],1) == 0
+    no_firing_idx = np.count_nonzero(spike_train[:,t-50:t],1) == 0
+    if t >= 50:
         if no_firing_idx.sum():
-            spike_train[no_firing_idx,t] = 1
+            spike_train[no_firing_idx,t] = True
+    
+#%% repeating
+first_repeat = 65
+repeating_pattern = spike_train[:1000, first_repeat:first_repeat+50]
 
-#jitter
+repeat_times = [first_repeat]
+last_repeat_time = first_repeat
+for t in range(t_stop-50):
+    if t > last_repeat_time + 100:
+        r = np.random.uniform(0,1,25)
+        mask = r < 0.25
+        c = np.argwhere(mask).min() 
+        start_at = t + c*50
+ 
+        if start_at + 50 > t_stop:
+            break
+        
+        repeat_times.append(start_at) 
+        last_repeat_time = start_at
+        spike_train[:1000, last_repeat_time:last_repeat_time+50] = np.copy(repeating_pattern)
+
+repeat_times = np.array(repeat_times)
+
+# + 10 Hz jitter
 jitter_prob = np.random.uniform(0,1,spike_train.shape)
 jitter = jitter_prob < 10*dt*1e-3
 
 spike_train = np.logical_or(spike_train, jitter)
-    
-#%% repeating
-repeating_pattern = spike_train[:1000, 25:75]
-
-repeat_times = [25]
-last_repeat_time = 25
-for t in range(t_stop-50):
-    if t > last_repeat_time + np.random.uniform(75,225,1):
-        not_placed = True
-        while(not_placed):
-            if np.random.uniform(0,1) < 0.25:
-                repeat_times.append(t)
-                last_repeat_time = t
-                not_placed = False
-
-                spike_train[:1000, t:t+50] = np.copy(repeating_pattern)
-
-repeat_times = np.array(repeat_times)
-
-
 
 stimuli = ExternalSpikeTrain(dt, t_stop, no_neurons, spike_train)
 

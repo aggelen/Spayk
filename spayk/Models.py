@@ -171,7 +171,7 @@ class SRMLIFNeuron(NeuronGroup):
         self.dt = params['dt']
         self.t_rest = 0.0
         
-        self.effective_time_window = 100
+        self.effective_time_window = 70
         
         # presyn_spike_time -> tj, postsyn_spike_time -> ti
         self.t_ti = 1e3
