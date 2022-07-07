@@ -160,6 +160,9 @@ class SRMLIFNeuron(NeuronGroup):
         self.configure(params)
         self.current_spikes = None
         
+        self.count = 0
+        self.w_mean = []
+        
         if params is None:
             #default
             pass
@@ -194,6 +197,8 @@ class SRMLIFNeuron(NeuronGroup):
         self.K2 = params['K2'] if 'K2' in params.keys() else 4.0
         
         self.stdp_status = params['stdp_on'] if 'stdp_on' in params.keys() else False
+        self.supervise_status = params['supervise_on'] if 'supervise_on' in params.keys() else False
+        self.supervision_stimuli = params['supervision_stimuli'] if 'supervision_stimuli' in params.keys() else None
         
         if self.stdp_status:
             self.a_plus, self.a_minus = params['stdp_params']['a_plus'], params['stdp_params']['a_minus']
@@ -224,11 +229,18 @@ class SRMLIFNeuron(NeuronGroup):
         
         self.t_tj[coords[:,0],coords[:,1]] = new_spikes
         
+        # if self.supervise_status:
+        #     if self.supervision_stimuli[self.count]:
+        #         self.LTP()
+        #     self.count += 1
+            
+        
         if self.t_rest > 0.0:
             self.v = self.rest()
         else:
             self.v = self.integrate()
 
+        self.w_mean.append(self.w.mean())
         return self.v
 
     def rest(self):
@@ -284,9 +296,9 @@ class SRMLIFNeuron(NeuronGroup):
         last_spikes = np.min(self.t_tj, axis=0)
 
         ltp = np.where(last_spikes < self.t_ti,
-                       np.full(self.n_syn, self.a_plus) * np.exp(-(last_spikes/self.tau_plus)),
-                       np.full(self.n_syn, 0.0))
-        
+                   np.full(self.n_syn, self.a_plus) * np.exp(-(last_spikes/self.tau_plus)),
+                   np.full(self.n_syn, 0.0))
+ 
         new_w = self.w + ltp
         self.w = np.clip(new_w, 0.0, 1.0)
 
@@ -296,8 +308,11 @@ class SRMLIFNeuronGroup(NeuronGroup):
         self.no_neurons = group_params['no_neurons']
         self.neurons = []
         for i in range(self.no_neurons):
-            self.neurons.append(SRMLIFNeuron(neuron_params))
-    
+            if isinstance(neuron_params, dict):
+                self.neurons.append(SRMLIFNeuron(neuron_params))
+            elif isinstance(neuron_params, list):
+                self.neurons.append(SRMLIFNeuron(neuron_params[i]))
+                
     def forward(self, current_spikes):
         vs = []
         for neuron in self.neurons:

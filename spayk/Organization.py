@@ -136,7 +136,7 @@ class Tissue:
                 if isinstance(out, np.float64):
                     self.logger.log_v(out)
                 else:
-                    self.logger.log_v(out[0])
+                    self.logger.log_v(out)
         else:
             raise Exception('Invalid Stimuli Source Type')
 
