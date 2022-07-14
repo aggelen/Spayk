@@ -10,8 +10,8 @@ import sys
 sys.path.append('..')
 
 from spayk.Organization import Tissue
-from spayk.Models import SRMLIFNeuronGroup
-from spayk.Stimuli import SpikingClassificationDataset
+from spayk.Models import SRMLIFNeuron 
+from spayk.Stimuli import SpikingMNIST, ExternalSpikeTrain
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,45 +21,40 @@ plt.close('all')
 
 #%% Stimuli: 3 classes as triangle, square and frame encoded in 25 synaptic connection
 # dataset contains random (t_stop/t_sample) samples of 3 classes
-dataset = SpikingClassificationDataset(dt=1.0, t_sample=50, t_stop=30000)
-dataset.spike_train.raster_plot()
-stimuli = dataset.spike_train
+dt = 1.0
+n_samples = 50
+dataset = SpikingMNIST()
+test_train, test_labels = dataset.generate_test_spike_train(n_samples=n_samples, dt=dt, t_sample=50)
+no_neurons = 784*2
+t_stop = test_train.shape[1]
 
-#%% Neuron
-ap = 0.03225
-stdp_params = {'a_plus': ap, 'a_minus': 0.85*ap, 'tau_plus': 16.8, 'tau_minus': 33.7}
-super_stim = dataset.target_spike_train.spikes
-n1_params = {'n_synapses': stimuli.no_neurons,
-             'dt': 1.0,
-             'w': np.full((stimuli.no_neurons), 0.475, dtype=np.float32),
-             'stdp_on': True,
-             'stdp_params': stdp_params,
-             'supervise_on': True}
+r = np.random.uniform(0, 30, size=(no_neurons))
+print('first r: {}'.format(r.mean()))
+s = np.random.uniform(-50, 50, size=(no_neurons))
+print('first s: {}'.format(s.mean()))
+spike_train = []
+for t in range(t_stop):
+    prob = np.random.uniform(0, 1, r.shape)
+    spikes = np.less(prob, np.array(r)*dt*1e-3)
+    spike_train.append(spikes)
+    r = np.clip(r + s*dt*1e-3 , 0, 30)
+    ds = np.random.uniform(-5, 5, size=(no_neurons))
+    s = np.clip(s + ds, -50, 50)
 
-n2_params = n1_params.copy()
-n3_params = n1_params.copy()
-n1_params['supervision_stimuli'] = super_stim[0]
-n2_params['supervision_stimuli'] = super_stim[1]
-n3_params['supervision_stimuli'] = super_stim[2]
-neuron_params = [n1_params, n2_params, n3_params]
+spike_train = np.array(spike_train).T
+spike_train[:784,:] = test_train
+test_stimuli = ExternalSpikeTrain(dt, t_stop, no_neurons, spike_train)
+test_stimuli.raster_plot()
 
-group_params = {'no_neurons': 3}
-classification_neurons = SRMLIFNeuronGroup(group_params, neuron_params)
+#%%
+ws = np.load('ws.npy', allow_pickle=True)
 
-# bind neuron to a tissue
-classification_tissue = Tissue([classification_neurons])
+n_params = {'n_synapses': no_neurons,
+            'dt': 1.0,
+            'w': ws[2],
+            'v_th': 135}
 
-# run simulation
-classification_tissue.keep_alive(stimuli=stimuli)
-classification_tissue.logger.plot_v()
-
-#%% Test
-test_dataset = SpikingClassificationDataset(dt=1.0, t_sample=50, t_stop=150)
-test_stimuli = test_dataset.spike_train
-
-classification_tissue.neuron_group.neurons[0].count = 0
-classification_tissue.neuron_group.neurons[1].count = 0
-classification_tissue.neuron_group.neurons[2].count = 0
-
-classification_tissue.keep_alive(stimuli=test_stimuli)
-classification_tissue.logger.plot_v()
+recog_neuron = SRMLIFNeuron(n_params)
+recognation_tissue = Tissue([recog_neuron])
+recognation_tissue.keep_alive(test_stimuli)
+recognation_tissue.logger.plot_v()

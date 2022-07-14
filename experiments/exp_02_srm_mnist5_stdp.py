@@ -24,30 +24,23 @@ dt = 1.0   #ms->s
 t_stop = 15000 #ms
 
 r = np.random.uniform(0, 30, size=(no_neurons))
-s = np.random.uniform(-180, 180, size=(no_neurons))
+print('first r: {}'.format(r.mean()))
+s = np.random.uniform(-50, 50, size=(no_neurons))
+print('first s: {}'.format(s.mean()))
 spike_train = []
 for t in range(t_stop):
     prob = np.random.uniform(0, 1, r.shape)
     spikes = np.less(prob, np.array(r)*dt*1e-3)
     spike_train.append(spikes)
     r = np.clip(r + s*dt*1e-3 , 0, 30)
-    ds = np.random.uniform(-36, 36, size=(no_neurons))
-    s = np.clip(s + ds, -180, 180)
+    ds = np.random.uniform(-5, 5, size=(no_neurons))
+    s = np.clip(s + ds, -50, 50)
 
 spike_train = np.array(spike_train).T
-
-triangle = np.array([[0,0,0,0,0],
-                      [0,1,0,0,0],
-                      [0,1,1,0,0],
-                      [0,1,1,1,0],
-                      [0,0,0,0,0]])
 
 #%% FIXME! Unsable with random 5 patterns
 dataset = SpikingMNIST()
 five_pattern = dataset.get_random_sample(label=5, dt=dt, t_stop=50)
-
-stimuli = ExternalSpikeTrain(dt, t_stop, no_neurons, spike_train)
-# stimuli.raster_plot()
 
 #%% repeating
 first_repeat = 25
@@ -55,18 +48,14 @@ spike_train[:784, first_repeat:first_repeat+50] = np.copy(five_pattern)
 
 repeat_times = [first_repeat]
 last_repeat_time = first_repeat
+stab_counter = 0
+stab_idx = [120, 280, 510]
 for t in range(t_stop-50):
     if t > last_repeat_time + 100:
         r = np.random.uniform(0,1,25)
-        #for stability
-        if last_repeat_time < 500:
-            c = np.random.randint(0,3)
-        else:
-            mask = r < 0.25
-            c = np.argwhere(mask).min()
-            
+        mask = r < 0.25
+        c = np.argwhere(mask).min()
         start_at = t + c*50
-
         if start_at + 50 > t_stop:
             break
 
@@ -75,12 +64,8 @@ for t in range(t_stop-50):
         spike_train[:784, last_repeat_time:last_repeat_time+50] = np.copy(five_pattern)
 
 repeat_times = np.array(repeat_times)
-
-# + 10 Hz jitter
-jitter_prob = np.random.uniform(0,1,spike_train.shape)
-jitter = jitter_prob < 5*dt*1e-3
-
-spike_train = np.logical_or(spike_train, jitter)
+stimuli = ExternalSpikeTrain(dt, t_stop, no_neurons, spike_train)
+# stimuli.raster_plot()
 
 #%% Custom Raster Plot
 fig, ax = plt.subplots()
@@ -136,4 +121,5 @@ plt.figure()
 plt.plot(input_frates)
 
 plt.figure()
-plt.hist(input_frates,40)
+# plt.hist(input_frates,40)
+plt.hist(np.sum(five_pattern, 1),10)

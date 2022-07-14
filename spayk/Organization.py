@@ -60,7 +60,7 @@ class Logger:
         # plt.xlabel('Time (ms)')
         # plt.ylabel('Memb. Pot. (mV)')
         fig.text(0.5, 0.04, 'Time (ms)', ha='center')
-        fig.text(0.04, 0.5, 'Memb. Pot. (mV)', va='center', rotation='vertical')
+        fig.text(0.04, 0.5, 'Memb. Pot. (unitless)', va='center', rotation='vertical')
             
     def raster_plot(self, color_array=None):
         f = plt.figure()
@@ -87,6 +87,7 @@ class Logger:
 
         else:
             c = 'k'
+            
         plt.scatter(spike_loc[:,1]*self.dt, spike_loc[:,0], s=3, color=c)
         
         # for spike_train in spikes:

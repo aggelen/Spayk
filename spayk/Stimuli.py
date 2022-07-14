@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import torchvision
+from torchvision import transforms
 
 class ConstantCurrentSource:
     def __init__(self, params):
@@ -198,7 +199,11 @@ class SpikingClassificationDataset:
         
 class SpikingMNIST:
     def __init__(self):
-        self.mnist = torchvision.datasets.MNIST(root="../datasets/", download=False)
+        self.transform = transforms.Compose([
+           transforms.ToTensor(),
+           # transforms.Normalize((0.1307,), (0.3081,))
+        ])
+        self.mnist = torchvision.datasets.MNIST(root="../datasets/", train=True, transform=self.transform, download=True)
         # img, label = self.mnist[10]
         
         self.images = []
@@ -207,8 +212,181 @@ class SpikingMNIST:
             self.images.append(self.mnist.data[indices].detach().numpy())
             
     def get_random_sample(self, label, dt, t_stop):
-        flat_arr = self.images[label][np.random.randint(self.images[label].shape[0])].flatten()
-        # flat_arr = self.images[label][0].flatten()
-        frates = flat_arr*(50/255) + np.random.uniform(0,1, flat_arr.shape)*15
-        return poisson_spike_train_generator(dt, t_stop, frates)
+        # flat_arr = self.images[label][np.random.randint(self.images[label].shape[0])].flatten()
+        flat_arr = self.images[label][0].flatten()
+        # frates = flat_arr*(50/255) + np.random.uniform(0,1, flat_arr.shape)*15
+        frates = flat_arr*(50/255)
+        
+        print('Frates mean: {}, std: {}'.format(frates.mean(), frates.std()))
+        print('Frates min: {}, max: {}'.format(frates.min(), frates.max()))
+        spike_train = poisson_spike_train_generator(dt, t_stop, frates)
+        
+        #jitter | for stability 
+        jitter_prob = np.random.uniform(0,1,spike_train.shape)
+        jitter = jitter_prob < 10*dt*1e-3
+        spike_train = np.logical_or(spike_train, jitter)
+        return spike_train
             
+    def generate_test_spike_train(self, n_samples, dt, t_sample):
+        self.mnist = torchvision.datasets.MNIST(root="../datasets/", train=False, transform=self.transform, download=True)
+        spikes = []
+        labels = []
+        for i in range(n_samples):
+            img, label = self.mnist[i]
+            flat_arr = img.detach().numpy().flatten()
+            frates = flat_arr*(50/255)
+            spike_train = poisson_spike_train_generator(dt, t_sample, frates)
+            spikes.append(spike_train)
+            labels.append(label)
+        
+        spikes = np.hstack(spikes)
+        
+        jitter_prob = np.random.uniform(0,1,spikes.shape)
+        jitter = jitter_prob < 10*dt*1e-3
+        spikes = np.logical_or(spikes, jitter)
+        
+        return spikes, np.array(labels)
+    
+    def special_spike_train(self, dt, t_stop, t_sample, distribute_5=True):
+        self.mnist = torchvision.datasets.MNIST(root="../datasets/", train=True, transform=self.transform, download=True)
+        #%% base spike train
+        no_neurons = 784*2
+
+        r = np.random.uniform(0, 30, size=(no_neurons))
+        s = np.random.uniform(-50, 50, size=(no_neurons))
+        spike_train = []
+        for t in range(t_stop):
+            prob = np.random.uniform(0, 1, r.shape)
+            spikes = np.less(prob, np.array(r)*dt*1e-3)
+            spike_train.append(spikes)
+            r = np.clip(r + s*dt*1e-3 , 0, 30)
+            ds = np.random.uniform(-5, 5, size=(no_neurons))
+            s = np.clip(s + ds, -50, 50)
+
+        spike_train = np.array(spike_train).T
+        
+        selected_labels = np.random.choice(np.arange(10), int(t_stop/t_sample))
+        
+        for sid, sl in enumerate(selected_labels):
+            sel_imgs = self.images[sl]
+            flat_arr = sel_imgs[np.random.randint(sel_imgs.shape[0])].flatten()
+            frates = flat_arr*(50/255)
+            pattern = poisson_spike_train_generator(dt, t_sample, frates)
+            
+            jitter_prob = np.random.uniform(0,1,pattern.shape)
+            jitter = jitter_prob < 10*dt*1e-3
+            pattern = np.logical_or(pattern, jitter)
+        
+            spike_train[:784, sid*50:(sid+1)*50] = np.copy(pattern)
+        
+        if distribute_5:
+            pattern_img = self.images[5][0]
+            flat_arr = pattern_img.flatten()
+            frates = flat_arr*(50/255)
+            pattern = poisson_spike_train_generator(dt, t_sample, frates)
+            jitter_prob = np.random.uniform(0,1,pattern.shape)
+            jitter = jitter_prob < 10*dt*1e-3
+            pattern = np.logical_or(pattern, jitter)
+            
+            first_repeat = 50
+            spike_train[:784, first_repeat:first_repeat+50] = np.copy(pattern)
+    
+            repeat_times = [first_repeat]
+            repeat_mode = [1]
+            last_repeat_time = first_repeat
+    
+            for t in range(t_stop-50):
+                if t > last_repeat_time + 100:
+                    r = np.random.uniform(0,1,25)
+                    mask = r < 0.25
+                    c = np.argwhere(mask).min()
+                    start_at = t + c*50
+                    if start_at + 50 > t_stop:
+                        break
+    
+                    repeat_times.append(start_at)
+                    last_repeat_time = start_at
+                
+                    spike_train[:784, last_repeat_time:last_repeat_time+50] = np.copy(pattern)
+                    repeat_mode.append(1)
+
+            repeat_times = np.array(repeat_times)
+        # repeat_labels = np.array(repeat_labels)
+        else:
+            repeat_times = False
+        
+        return spike_train, repeat_times, selected_labels
+    
+    def special_spike_train2(self, dt, t_stop, t_sample, distribute_5=True):
+        self.mnist = torchvision.datasets.MNIST(root="../datasets/", train=True, transform=self.transform, download=True)
+        #%% base spike train
+        no_neurons = 784*2
+        max_fr = 60
+        r = np.random.uniform(0, max_fr, size=(no_neurons))
+        s = np.random.uniform(-50, 50, size=(no_neurons))
+        spike_train = []
+        for t in range(t_stop):
+            prob = np.random.uniform(0, 1, r.shape)
+            spikes = np.less(prob, np.array(r)*dt*1e-3)
+            spike_train.append(spikes)
+            r = np.clip(r + s*dt*1e-3 , 0, max_fr)
+            ds = np.random.uniform(-5, 5, size=(no_neurons))
+            s = np.clip(s + ds, -50, 50)
+
+        spike_train = np.array(spike_train).T
+        
+        selected_labels = np.random.choice(np.arange(10), int(t_stop/t_sample))
+        
+        for sid, sl in enumerate(selected_labels):
+            sel_imgs = self.images[sl]
+            flat_arr = sel_imgs[np.random.randint(sel_imgs.shape[0])].flatten()
+            frates = flat_arr*(90/255)
+            pattern = poisson_spike_train_generator(dt, t_sample, frates)
+            
+            jitter_prob = np.random.uniform(0,1,pattern.shape)
+            jitter = jitter_prob < 10*dt*1e-3
+            pattern = np.logical_or(pattern, jitter)
+        
+            spike_train[:784, sid*50:(sid+1)*50] = np.copy(pattern)
+        
+        if distribute_5:
+            pattern_img = self.images[5][0]
+            flat_arr = pattern_img.flatten()
+            frates = flat_arr*(50/255)
+            pattern = poisson_spike_train_generator(dt, t_sample, frates)
+            jitter_prob = np.random.uniform(0,1,pattern.shape)
+            jitter = jitter_prob < 10*dt*1e-3
+            pattern = np.logical_or(pattern, jitter)
+            
+            first_repeat = 50
+            spike_train[:784, first_repeat:first_repeat+50] = np.copy(pattern)
+    
+            repeat_times = [first_repeat]
+            repeat_mode = [1]
+            last_repeat_time = first_repeat
+    
+            for t in range(t_stop-50):
+                if t > last_repeat_time + 100:
+                    r = np.random.uniform(0,1,25)
+                    mask = r < 0.25
+                    c = np.argwhere(mask).min()
+                    start_at = t + c*50
+                    if start_at + 50 > t_stop:
+                        break
+    
+                    repeat_times.append(start_at)
+                    last_repeat_time = start_at
+                
+                    spike_train[:784, last_repeat_time:last_repeat_time+50] = np.copy(pattern)
+                    repeat_mode.append(1)
+
+            repeat_times = np.array(repeat_times)
+        # repeat_labels = np.array(repeat_labels)
+        else:
+            repeat_times = False
+        
+        return spike_train, repeat_times, selected_labels
+                
+        
+            
+        
