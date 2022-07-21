@@ -15,6 +15,8 @@ from spayk.Stimuli import SpikingMNIST, ExternalSpikeTrain
 
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
 plt.close('all')
 
 # Classification experiment with 3 srm lif neurons
@@ -25,7 +27,7 @@ plt.close('all')
 dt = 1.0
 n_samples = 50
 no_neurons = 784*2
-t_stop = 150000
+t_stop = 50000
 dataset = SpikingMNIST()
 spike_train, repeat_times, repeat_mode = dataset.special_spike_train(dt, t_stop=t_stop, t_sample=50)
 
@@ -80,4 +82,5 @@ for a_x, a_y in zip(*a):
 #%%
 plt.figure()
 plt.plot(recog_neuron.w_mean)
+plt.grid()
 

@@ -43,7 +43,10 @@ class ConstantCurrentSource:
 
 class SpikeTrain:
     def __init__(self):
-        pass
+        self.current_step = 0
+        
+    def reset(self):
+        self.current_step = 0
 
     def current_spikes(self):
         spikes = self.spikes[:,self.current_step]
@@ -251,7 +254,8 @@ class SpikingMNIST:
         self.mnist = torchvision.datasets.MNIST(root="../datasets/", train=True, transform=self.transform, download=True)
         #%% base spike train
         no_neurons = 784*2
-
+        
+        print('creating stimuli')
         r = np.random.uniform(0, 30, size=(no_neurons))
         s = np.random.uniform(-50, 50, size=(no_neurons))
         spike_train = []

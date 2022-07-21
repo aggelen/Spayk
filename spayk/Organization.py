@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Organization
+====================================
+The core module of my example project
+
+"""
+
+"""
 Created on Tue May 10 21:57:30 2022
 
 @author: aggelen
@@ -15,6 +22,20 @@ import itertools
 
 class Logger:
     def __init__(self, steps, dt):
+        """
+
+        Parameters
+        ----------
+        steps : TYPE
+            DESCRIPTION.
+        dt : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
         self.steps = steps
         self.dt = dt
         self.v_history = []
@@ -137,7 +158,7 @@ class Tissue:
                 if isinstance(out, np.float64):
                     self.logger.log_v(out)
                 else:
-                    self.logger.log_v(out)
+                    self.logger.log_v(out[0])
         else:
             raise Exception('Invalid Stimuli Source Type')
 

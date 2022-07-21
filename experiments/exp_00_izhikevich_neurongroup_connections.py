@@ -40,32 +40,33 @@ input_spike_train.raster_plot()
 
 
 #%% Model1: many izhikevich neurons as a layer, many synaptic inputs
-# no_neurons = 1000
-# group_params = {'no_neurons': no_neurons,
-#                 'behaviour': 'synaptic',
-#                 'no_syn': 100}
-# neurongroup1 = IzhikevichNeuronGroup(group_params)
+no_neurons = 1000
+group_params = {'no_neurons': no_neurons,
+                'behaviour': 'synaptic',
+                'no_syn': 100}
+neurongroup1 = IzhikevichNeuronGroup(group_params)
 
-# # Custimization
-# ihn_neuron_idx = np.random.choice(np.arange(no_neurons), 200)   # 200 inhibitory
-# dynamics = np.zeros(no_neurons)
-# dynamics[ihn_neuron_idx] = 3    # inh neurons are chattering!
+# Custimization
+ihn_neuron_idx = np.random.choice(np.arange(no_neurons), 200)   # 200 inhibitory
+dynamics = np.zeros(no_neurons)
+dynamics[ihn_neuron_idx] = 3    # inh neurons are chattering!
 
-# w = np.zeros((1000,100), dtype=np.float32)
-# w[ np.random.uniform(0,1,(1000,100)) < 0.1 ] = 0.025
+w = np.zeros((1000,100), dtype=np.float32)
+w[ np.random.uniform(0,1,(1000,100)) < 0.1 ] = 0.07
 
-# custumization_params = {'dynamics': dynamics, 'w': w}
-# neurongroup1.set_architecture(custumization_params)
-# customized_tissue = Tissue([neurongroup1])
+custumization_params = {'dynamics': dynamics, 'w': w}
+neurongroup1.set_architecture(custumization_params)
+customized_tissue = Tissue([neurongroup1])
 
-# customized_tissue.keep_alive(stimuli=input_spike_train)
+customized_tissue.keep_alive(stimuli=input_spike_train)
 
-# #colorize inh.
-# neuron_types = np.zeros(1000)
-# neuron_types[ihn_neuron_idx] = 1
-# customized_tissue.logger.raster_plot(color_array=neuron_types)
+#colorize inh.
+neuron_types = np.zeros(1000)
+neuron_types[ihn_neuron_idx] = 1
+customized_tissue.logger.raster_plot(color_array=neuron_types)
 
 #%% Model2: recurrent tissue
+input_spike_train.reset()
 no_neurons = 1000
 group_params = {'no_neurons': no_neurons,
                 'behaviour': 'recurrent',
@@ -105,3 +106,11 @@ rec_tissue.keep_alive(stimuli=input_spike_train)
 neuron_types = np.zeros(1000)
 neuron_types[ihn_neuron_idx] = 1
 rec_tissue.logger.raster_plot(neuron_types)
+
+#%%
+import matplotlib.lines as mlines
+colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+eight = mlines.Line2D([], [], color=colors[0], marker='.', ls='', label='Exc.')
+nine = mlines.Line2D([], [], color=colors[1], marker='.', ls='', label='Inh.')
+# etc etc
+plt.legend(handles=[eight, nine], loc='upper right')

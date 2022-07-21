@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue May 10 22:17:14 2022
+Nerves
+====================================
+The core module of my example project
 
+"""
+
+"""
+Created on Tue May 10 22:17:14 2022
 @author: aggelen
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,6 +29,13 @@ class SingleIzhikevichNeuron(Neuron):
                        'low_threshold_spiking': 6}
     
     def __init__(self, stimuli=None, dynamics='regular_spiking'):
+        """
+        Return the most important thing about a person.
+        Parameters
+        ----------
+        your_name
+            A string indicating the name of the person.
+        """
         super().__init__()
         self.stimuli = stimuli
         
@@ -106,6 +120,13 @@ class SingleIzhikevichNeuron(Neuron):
 #%% Neuron Groups
 class NeuronGroup:
     def __init__(self):
+        """
+    Return the most important thing about a person.
+    Parameters
+    ----------
+    your_name
+        A string indicating the name of the person.
+    """
         pass
     def __call__(self, data=None):
         if data is None:
