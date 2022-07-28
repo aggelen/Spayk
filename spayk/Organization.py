@@ -78,14 +78,17 @@ class Logger:
                 axes.plot(np.arange(vs.shape[0])*self.dt, vs)
             # plt.tight_layout()
             
-        # plt.xlabel('Time (ms)')
-        # plt.ylabel('Memb. Pot. (mV)')
-        fig.text(0.5, 0.04, 'Time (ms)', ha='center')
-        fig.text(0.04, 0.5, 'Memb. Pot. (unitless)', va='center', rotation='vertical')
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Memb. Pot. (mV)')
+        # fig.text(0.5, 0.04, 'Time (ms)', ha='center')
+        # fig.text(0.04, 0.5, 'Memb. Pot. (unitless)', va='center', rotation='vertical')
             
-    def raster_plot(self, color_array=None):
+    def raster_plot(self, color_array=None, title=None, title_pad=0):
         f = plt.figure()
-        plt.title('Raster Plot')
+        if title is not None:
+            plt.title(title, pad=title_pad)
+        else:
+            plt.title('Raster Plot', pad=title_pad)
         plt.xlabel('Time (ms)')
         plt.ylabel('Neuron ID')
         # spike_times = []
@@ -129,7 +132,9 @@ class Logger:
         # ax = f.gca()
         # ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-        
+    def output_spikes(self):
+        spikes = (np.array(self.v_history) == 35.0).T
+        return spikes
         
 
 class Tissue:

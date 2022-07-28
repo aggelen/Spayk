@@ -12,6 +12,28 @@ import seaborn as sns
 import torchvision
 from torchvision import transforms
 
+class SimpleConstantCurrentSource:
+    def __init__(self, dt, t_stop, signal):
+        self.t_stop = t_stop
+        self.dt = dt
+        self.steps = np.arange(int(self.t_stop / self.dt))
+
+        self.currents = signal
+        self.current_step = 0
+        self.source_type = 'current'
+
+    def plot(self):
+        plt.figure()
+        plt.plot(np.arange(self.currents.shape[1])*self.dt, self.currents.T)
+        plt.title('Injected Currents')
+        plt.xlabel('Time (ms)')
+        plt.ylabel('Current ()')
+
+    def I(self):
+        I = self.currents[:,self.current_step]
+        self.current_step += 1
+        return I
+    
 class ConstantCurrentSource:
     def __init__(self, params):
         ts, te, self.t_stop, amp = params['t_cur_start'], params['t_cur_end'], params['t_stop'], params['amplitudes']
@@ -53,9 +75,12 @@ class SpikeTrain:
         self.current_step += 1
         return spikes
 
-    def raster_plot(self, color_array=None, first_n=None):
+    def raster_plot(self, color_array=None, first_n=None, title=None, title_pad=0):
         f = plt.figure()
-        plt.title('Raster Plot')
+        if title is not None:
+            plt.title(title, pad=title_pad)
+        else:
+            plt.title('Raster Plot', pad=title_pad)
         plt.xlabel('Time (ms)')
         plt.ylabel('Neuron ID')
         # spike_times = []
@@ -79,6 +104,7 @@ class SpikeTrain:
             c = colors[0]
 
         plt.scatter(spike_loc[:,1]*self.dt, spike_loc[:,0], s=3, color=c)
+        plt.xlim([0,(spike_loc[:,1]*self.dt)[-1]])
 
 
 class ExternalSpikeTrain(SpikeTrain):
@@ -98,7 +124,8 @@ class ExternalSpikeTrain(SpikeTrain):
             self.mean_spike_rate = self.spikes.mean() / (self.t_stop/1000)
         else:
             self.mean_spike_rate = np.sum(self.spikes,1).mean() / (self.t_stop/1000)
-        print('Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
+            
+        print('External Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
 
     def current_spikes(self):
         if self.spikes.shape.__len__() == 1:
@@ -123,16 +150,19 @@ class PoissonSpikeTrain(SpikeTrain):
         self.mean_spike_rate = np.sum(self.spikes,1).mean() / (self.t_stop/1000)
         print('Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
         
-def poisson_spike_train_generator(dt, t_stop, rates):
-    s = np.random.uniform(-50, 50, size=rates.size)
+def poisson_spike_train_generator(dt, t_stop, rates, variable_rate=True):
+    if variable_rate:
+        s = np.random.uniform(-50, 50, size=rates.size)
+        
     spike_train = []
-    for t in range(t_stop):
+    for t in range(int(t_stop/dt)):
         prob = np.random.uniform(0, 1, rates.shape)
         spikes = np.less(prob, np.array(rates)*dt*1e-3)
         spike_train.append(spikes)
-        rates = np.clip(rates + s*dt*1e-3 , 0, 90)
-        ds = np.random.uniform(-5, 5, size=rates.size)
-        s = np.clip(s + ds, -50, 50)
+        if variable_rate:
+            rates = np.clip(rates + s*dt*1e-3 , 0, 90)
+            ds = np.random.uniform(-5, 5, size=rates.size)
+            s = np.clip(s + ds, -50, 50)
     
     # prob = np.random.uniform(0, 1, (int(t_stop / dt), rates.size))
     # spikes = np.less(prob, np.array(rates)*dt*1e-3).T
@@ -201,12 +231,12 @@ class SpikingClassificationDataset:
         self.spike_train = ExternalSpikeTrain(dt, t_stop, self.class_templates[c].flatten().size, spikes)
         
 class SpikingMNIST:
-    def __init__(self):
+    def __init__(self, root='../'):
         self.transform = transforms.Compose([
            transforms.ToTensor(),
            # transforms.Normalize((0.1307,), (0.3081,))
         ])
-        self.mnist = torchvision.datasets.MNIST(root="../datasets/", train=True, transform=self.transform, download=True)
+        self.mnist = torchvision.datasets.MNIST(root=root+"datasets/", train=True, transform=self.transform, download=True)
         # img, label = self.mnist[10]
         
         self.images = []
@@ -214,21 +244,22 @@ class SpikingMNIST:
             indices = self.mnist.targets == i
             self.images.append(self.mnist.data[indices].detach().numpy())
             
-    def get_random_sample(self, label, dt, t_stop):
+    def get_random_sample(self, label, dt, t_stop, jitter=10, max_fr=50):
         # flat_arr = self.images[label][np.random.randint(self.images[label].shape[0])].flatten()
         flat_arr = self.images[label][0].flatten()
         # frates = flat_arr*(50/255) + np.random.uniform(0,1, flat_arr.shape)*15
-        frates = flat_arr*(50/255)
+        frates = flat_arr*(max_fr/255)
         
         print('Frates mean: {}, std: {}'.format(frates.mean(), frates.std()))
         print('Frates min: {}, max: {}'.format(frates.min(), frates.max()))
         spike_train = poisson_spike_train_generator(dt, t_stop, frates)
         
-        #jitter | for stability 
-        jitter_prob = np.random.uniform(0,1,spike_train.shape)
-        jitter = jitter_prob < 10*dt*1e-3
-        spike_train = np.logical_or(spike_train, jitter)
-        return spike_train
+        if jitter:
+            #jitter | for stability 
+            jitter_prob = np.random.uniform(0,1,spike_train.shape)
+            jitter_st = jitter_prob < jitter*dt*1e-3
+            spike_train = np.logical_or(spike_train, jitter_st)
+        return spike_train, self.images[label][0]
             
     def generate_test_spike_train(self, n_samples, dt, t_sample):
         self.mnist = torchvision.datasets.MNIST(root="../datasets/", train=False, transform=self.transform, download=True)
