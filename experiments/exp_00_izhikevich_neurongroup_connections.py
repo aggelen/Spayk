@@ -11,137 +11,106 @@ sys.path.append('..')
 
 from spayk.Organization import Tissue
 from spayk.Models import IzhikevichNeuronGroup
-from spayk.Stimuli import SpikingMNIST, ExternalSpikeTrain
+from spayk.Stimuli import PoissonSpikeTrain
 
 import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
 
 # stimuli
-dataset = SpikingMNIST()
-label_0, img0 = dataset.get_random_sample(label=1, dt=0.1, t_stop=500, jitter=2, max_fr=25)
-label_1, img1 = dataset.get_random_sample(label=4, dt=0.1, t_stop=500, jitter=2, max_fr=25)
-label_2, img2 = dataset.get_random_sample(label=7, dt=0.1, t_stop=500, jitter=2, max_fr=25)
-st = np.hstack([label_0, label_1, label_2, label_1, label_0, label_2])
-input_spike_train = ExternalSpikeTrain(dt=0.1, t_stop=6*500, no_neurons=st.shape[0], spike_train=st)
-input_spike_train.raster_plot(title='Input Stimuli (MNIST Labels)', title_pad=60)
+# input_spike_train = PoissonSpikeTrain(dt=0.1, t_stop=1000, no_neurons=100, spike_rates=np.random.randint(5,20,100))
+input_spike_train = PoissonSpikeTrain(dt=0.1, t_stop=1000, no_neurons=100, spike_rates=2*np.ones(100))
+input_spike_train.raster_plot()
 
-from matplotlib.patches import Rectangle
-ax = plt.gca()
-start = [250,750,1250,1750,2250,2750]
-end = [125,125,125,125,125,125]
-a = tuple(np.vstack((start,end)))
-width = 490
-height = 250
-colors = ['gray','blue','red','blue','gray','red']
-i=0
-for a_x, a_y in zip(*a):
-    ax.add_patch(Rectangle(xy=(a_x-width/2, a_y-height/2), width=width, height=height, linewidth=1, color=colors[i], fill=True, alpha=0.1))
-    i+=1
-    
-plt.ylim([0,250])
-plt.xlim([0,3000])
-# plt.rcParams["figure.figsize"] = [3.50, 3.50]
-plt.rcParams["figure.autolayout"] = True
+#%% Model0: single izhikevich neuron have 100 syn connections
+# different behaviours, simple, synaptic, stdp
 
-fig = plt.gcf()
-figManager = plt.get_current_fig_manager()
-figManager.window.showMaximized()
+# group_params = {'no_neurons': 1,
+#                 'behaviour': 'synaptic',
+#                 'no_syn': 100}
 
-ctr = (np.array([250,700,1170,1600,2075,2550])/3000)
-vert = 0.85
-newax = fig.add_axes([ctr[0],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img0-255), cmap='gray')
-newax.axis('off')
+# synaptic_neuron = IzhikevichNeuronGroup(group_params)
 
-newax = fig.add_axes([ctr[1],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img1-255), cmap='gray')
-newax.axis('off')
+# # AUTOCONNECT -> create synaptic connections and bind
+# synaptic_neuron.autoconnect()
+# synaptic_neuron_tissue = Tissue([synaptic_neuron])
 
-newax = fig.add_axes([ctr[2],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img2-255), cmap='gray')
-newax.axis('off')
+# synaptic_neuron_tissue.keep_alive(stimuli=input_spike_train)
+# synaptic_neuron_tissue.logger.plot_v()
 
-newax = fig.add_axes([ctr[3],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img1-255), cmap='gray')
-newax.axis('off')
 
-newax = fig.add_axes([ctr[4],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img0-255), cmap='gray')
-newax.axis('off')
-
-newax = fig.add_axes([ctr[5],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img2-255), cmap='gray')
-newax.axis('off')
-
-#%% Synaptic Model
-no_neurons = 250
-no_inh_neurons = 75
-no_syn = input_spike_train.no_neurons
-inh_synapse_idx = np.random.choice(no_syn, size=no_inh_neurons, replace=False)
-E = np.zeros(no_syn)
-E[inh_synapse_idx] = -75
-
+#%% Model1: many izhikevich neurons as a layer, many synaptic inputs
+no_neurons = 1000
 group_params = {'no_neurons': no_neurons,
                 'behaviour': 'synaptic',
-                'no_syn': no_syn,
-                'E': E}
+                'no_syn': 100}
+neurongroup1 = IzhikevichNeuronGroup(group_params)
 
-neurongroup = IzhikevichNeuronGroup(group_params)
-neurongroup.autoconnect(scale=2.1)
+# Custimization
+ihn_neuron_idx = np.random.choice(np.arange(no_neurons), 200)   # 200 inhibitory
+dynamics = np.zeros(no_neurons)
+dynamics[ihn_neuron_idx] = 3    # inh neurons are chattering!
 
-tissue = Tissue([neurongroup])
+w = np.zeros((1000,100), dtype=np.float32)
+w[ np.random.uniform(0,1,(1000,100)) < 0.1 ] = 0.07
 
-tissue.keep_alive(stimuli=input_spike_train)
+custumization_params = {'dynamics': dynamics, 'w': w}
+neurongroup1.set_architecture(custumization_params)
+customized_tissue = Tissue([neurongroup1])
+
+customized_tissue.keep_alive(stimuli=input_spike_train)
+
+#colorize inh.
+neuron_types = np.zeros(1000)
+neuron_types[ihn_neuron_idx] = 1
+customized_tissue.logger.raster_plot(color_array=neuron_types)
+
+#%% Model2: recurrent tissue
+input_spike_train.reset()
+no_neurons = 1000
+group_params = {'no_neurons': no_neurons,
+                'behaviour': 'recurrent',
+                'no_syn': 100}
+rec_neurongroup = IzhikevichNeuronGroup(group_params)
+
+# Custimization
+# experiment inspired from kaizouman trick! (https://github.com/kaizouman/tensorsandbox)
+ihn_neuron_prob = np.random.uniform(0,1,1000)
+ihn_neuron_idx = np.argwhere(ihn_neuron_prob < 0.2)
+# ihn_neuron_idx = np.random.choice(np.arange(no_neurons), 200)   # 200 inhibitory
+dynamics = np.zeros(no_neurons)
+dynamics[ihn_neuron_idx] = 3    # inh neurons are chattering!
+
+w = np.zeros((1000,100), dtype=np.float32)
+w[ np.random.uniform(0,1,(1000,100)) < 0.1 ] = 0.07
+
+# recurrent arch.
+w_rec = np.zeros((1000,1000),  dtype=np.float32)
+rec_prob = np.random.uniform(0,1,(1000,1000))
+w_rec[rec_prob < 0.1] = np.random.gamma(2, 0.003, size=w_rec[rec_prob < 0.1].shape)
+
+# Inhibitory to excitatory connections are twice as strong. (kaizouman)
+inh_2_exc = np.ix_(ihn_neuron_prob >= 0.2, ihn_neuron_prob < 0.2)
+w_rec[ inh_2_exc ] = 2*w_rec[ inh_2_exc]
+
+E_rec = np.zeros((1000), dtype=np.float32)
+E_rec[ihn_neuron_idx] = -85.0
+
+custumization_params = {'dynamics': dynamics, 'w': w, 'E_rec': E_rec, 'w_rec': w_rec}
+rec_neurongroup.set_architecture(custumization_params)
+rec_tissue = Tissue([rec_neurongroup])
+
+rec_tissue.keep_alive(stimuli=input_spike_train)
+
+#colorize inh.
+neuron_types = np.zeros(1000)
+neuron_types[ihn_neuron_idx] = 1
+rec_tissue.logger.raster_plot(neuron_types)
 
 #%%
-tissue.logger.raster_plot(title='Response of Izhikevich Neuron Group', title_pad=60)
-from matplotlib.patches import Rectangle
-ax = plt.gca()
-start = [250,750,1250,1750,2250,2750]
-end = [125,125,125,125,125,125]
-a = tuple(np.vstack((start,end)))
-width = 490
-height = 250
-colors = ['gray','blue','red','blue','gray','red']
-i=0
-for a_x, a_y in zip(*a):
-    ax.add_patch(Rectangle(xy=(a_x-width/2, a_y-height/2), width=width, height=height, linewidth=1, color=colors[i], fill=True, alpha=0.1))
-    i+=1
-    
-plt.ylim([0,250])
-plt.xlim([0,3000])
-# plt.rcParams["figure.figsize"] = [3.50, 3.50]
-plt.rcParams["figure.autolayout"] = True
-
-fig = plt.gcf()
-figManager = plt.get_current_fig_manager()
-figManager.window.showMaximized()
-
-ctr = (np.array([250,700,1170,1600,2075,2550])/3000)
-vert = 0.85
-newax = fig.add_axes([ctr[0],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img0-255), cmap='gray')
-newax.axis('off')
-
-newax = fig.add_axes([ctr[1],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img1-255), cmap='gray')
-newax.axis('off')
-
-newax = fig.add_axes([ctr[2],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img2-255), cmap='gray')
-newax.axis('off')
-
-newax = fig.add_axes([ctr[3],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img1-255), cmap='gray')
-newax.axis('off')
-
-newax = fig.add_axes([ctr[4],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img0-255), cmap='gray')
-newax.axis('off')
-
-newax = fig.add_axes([ctr[5],vert,0.1,0.1], anchor='C', zorder=1)
-newax.imshow(-(img2-255), cmap='gray')
-newax.axis('off')
-#%%
-spikes = tissue.logger.output_spikes()
+import matplotlib.lines as mlines
+colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+eight = mlines.Line2D([], [], color=colors[0], marker='.', ls='', label='Exc.')
+nine = mlines.Line2D([], [], color=colors[1], marker='.', ls='', label='Inh.')
+# etc etc
+plt.legend(handles=[eight, nine], loc='upper right')

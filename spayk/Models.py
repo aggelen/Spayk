@@ -11,7 +11,7 @@ from spayk.Utils import izhikevich_dynamics_selector
 
 # Ref.
 # https://neuronaldynamics.epfl.ch/online/Ch3.S1.html (Synapses, channel models)
-# Spike Timing Dependent Plasticity Finds the Start of Repeating Patterns in Continuous Spike Trains (Spike respnse model, params)
+# [Masq2008] Spike Timing Dependent Plasticity Finds the Start of Repeating Patterns in Continuous Spike Trains (Spike respnse model, params)
 
 #%% Base Classes
 class Neuron:
@@ -194,7 +194,7 @@ class SRMLIFNeuron(NeuronGroup):
         # presyn_spike_time -> tj, postsyn_spike_time -> ti
         self.t_ti = 1e3
         self.t_tj = np.full((self.effective_time_window, self.n_syn), 100000.0)
-        self.spike_idx = self.n_syn - 1
+        # self.spike_idx = self.n_syn - 1
 
         # self.w = params['w'] if 'w' in params.keys() else np.full((self.n_syn), 0.475, dtype=np.float32)
         self.w = params['w'] if 'w' in params.keys() else np.random.uniform(0.125, 0.565, self.n_syn)
@@ -229,20 +229,16 @@ class SRMLIFNeuron(NeuronGroup):
     def forward(self, current_spikes):
         self.current_spikes = current_spikes
 
-        # update time
+        # update time       
         self.t_ti += self.dt
         self.t_tj += self.dt
 
-        self.spike_idx = np.mod(self.spike_idx + 1, self.effective_time_window)
-
-        idx = np.full(self.n_syn, 1, dtype=np.int32) * self.spike_idx
-        coords = np.stack([idx, np.arange(self.n_syn)], axis=1)
-
-        new_spikes = np.where(current_spikes,
-                              np.full(self.n_syn, 0.0),
-                              np.full(self.n_syn, 100000.0))
-
-        self.t_tj[coords[:,0],coords[:,1]] = new_spikes
+        new_spike_times = np.where(current_spikes,
+                                   np.full(current_spikes.size, 0.0),
+                                   np.full(current_spikes.size, 100000.0))
+        
+        self.t_tj = np.r_[[new_spike_times], self.t_tj]
+        self.t_tj = np.delete(self.t_tj, -1, 0)
 
         if self.t_rest > 0.0:
             self.v = self.rest()
@@ -256,13 +252,19 @@ class SRMLIFNeuron(NeuronGroup):
         if self.stdp_status:
             if self.t_ti < self.tau_minus*7:
                 self.LTD()
-
+                
+        #sometimes goes neg!
         self.t_rest = np.maximum(self.t_rest - self.dt, 0.0)
+        
         neg_t_ti = -self.t_ti
+        # [Masq2008] page8, SRM equations, eta!
         return self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
 
     def integrate(self):
         # presyn_spike_time -> tj, postsyn_spike_time -> ti
+        # equations from [Masq2008] page8 epsilon and eta functions
+        
+        #Update memb. potential
         neg_t_ti, neg_t_tj = -self.t_ti, -self.t_tj
         spike_response = self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
         EPSPs = self.K *(np.exp(neg_t_tj/self.tau_m) - np.exp(neg_t_tj/self.tau_s))
@@ -289,6 +291,7 @@ class SRMLIFNeuron(NeuronGroup):
         self.t_ti = 0.0
         self.t_rest = self.tau_rest
         neg_t_ti = -self.t_ti
+        #eta function
         return self.v_th * (self.K1*np.exp(neg_t_ti/self.tau_m) - self.K2*(np.exp(neg_t_ti/self.tau_m) - np.exp(neg_t_ti/self.tau_s)))
 
     def LTD(self):
@@ -302,11 +305,11 @@ class SRMLIFNeuron(NeuronGroup):
         self.w = np.clip(new_w, 0.0, 1.0)
 
     def LTP(self):
-        last_spikes = np.min(self.t_tj, axis=0)
-
-        ltp = np.where(last_spikes < self.t_ti,
-                   np.full(self.n_syn, self.a_plus) * np.exp(-(last_spikes/self.tau_plus)),
-                   np.full(self.n_syn, 0.0))
+        tj = np.min(self.t_tj, axis=0)
+        
+        ltp = np.where(tj < self.t_ti,
+                       np.full(self.n_syn, self.a_plus) * np.exp(-(tj/self.tau_plus)),
+                       np.full(self.n_syn, 0.0))
 
         new_w = self.w + ltp
         self.w = np.clip(new_w, 0.0, 1.0)

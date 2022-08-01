@@ -7,12 +7,38 @@ Created on Sun Jun  5 15:08:47 2022
 """
 import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
 
 class STDP:
     def __init__(self, params):
         self.params = params
         self.effective_time_window = 70
         self.mu_w_hist = []
+        
+    def single_LTP_update(self, dt):
+        return self.params['a_plus'] * np.exp((dt/self.params['tau_plus']))
+        
+    def single_LTD_update(self, dt):
+        return -self.params['a_minus'] * np.exp(-(dt/self.params['tau_minus']))
+    
+    def plot_stdp_curve(self, time_difference):
+        dw = []
+        for dt in time_difference:
+            if dt <= 0:
+                dw.append(self.single_LTP_update(dt))
+            else:
+                dw.append(self.single_LTD_update(dt))
+        
+        plt.figure()
+        plt.plot(time_difference, dw)
+        plt.xlabel(u'Δt Time Difference (ms)')
+        plt.ylabel(u'Δw Relative Weight Change')
+        plt.grid()
+        
+               
+        
         
     def update_spike_times(self, t_ti, t_tj, current_spikes):
         t_ti += self.params['dt']
