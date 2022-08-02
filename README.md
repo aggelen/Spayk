@@ -2,12 +2,11 @@
 
 <div align="center">
 
-  <a href="https://github.com/aggelen/Spayk/stargazers)">![Stargazers](https://img.shields.io/github/stars/aggelen/Spayk.svg?style=for-the-badge)</a>
+  <a href="https://github.com/aggelen/Spayk/stargazers">![Stargazers](https://img.shields.io/github/stars/aggelen/Spayk.svg?style=for-the-badge)</a>
   <a href="https://github.com/aggelen/Spayk/issues">![Issues](https://img.shields.io/github/issues/aggelen/Spayk.svg?style=for-the-badge)</a>
   <a href="https://github.com/aggelen/Spayk/blob/master/LICENSE">![license](https://img.shields.io/github/license/aggelen/Spayk.svg?style=for-the-badge)</a>
 
 </div>
-
 
 
 <!-- PROJECT SHIELDS -->
