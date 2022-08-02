@@ -15,8 +15,6 @@
     SPAYK is an open source tool developed to simulate spiking neurons and their networks. Documentation studies are still in progress.
     <br />
     <a href="https://github.com/aggelen/Spayk/tree/master/experiments"><strong>Experiments</strong></a>
-    <br />
-    <br />
     ·
     <a href="https://github.com/aggelen/spayk/issues">Issues</a>
   </p>
@@ -89,3 +87,13 @@ Publishing SPAYK as an installable package continues. Currently, you can directl
 Distributed under the BSD-3-Clause license. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
+
+
+[stars-shield]: https://img.shields.io/github/stars/aggelen/Spayk.svg?style=for-the-badge
+[stars-url]: https://github.com/aggelen/Spayk/stargazers
+
+[issues-shield]: https://img.shields.io/github/issues/aggelen/Spayk.svg?style=for-the-badge
+[issues-url]: https://github.com/aggelen/Spayk/issues
+
+[license-shield]: https://img.shields.io/github/license/aggelen/Spayk.svg?style=for-the-badge
+[license-url]: https://github.com/aggelen/Spayk/blob/master/LICENSE
