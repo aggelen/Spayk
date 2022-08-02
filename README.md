@@ -1,10 +1,11 @@
 <div id="top"></div>
 
+<div align="center">
 <!-- PROJECT SHIELDS -->
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-
+</div>
 
 <!-- PROJECT LOGO -->
 <br />
