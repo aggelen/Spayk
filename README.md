@@ -1,11 +1,20 @@
 <div id="top"></div>
 
 <div align="center">
+
+  <a href="https://github.com/aggelen/Spayk/stargazers)">![Stargazers](https://img.shields.io/github/stars/aggelen/Spayk.svg?style=for-the-badge)</a>
+  <a href="https://github.com/aggelen/Spayk/issues">![Issues](https://img.shields.io/github/issues/aggelen/Spayk.svg?style=for-the-badge)</a>
+  <a href="https://github.com/aggelen/Spayk/blob/master/LICENSE">![license](https://img.shields.io/github/license/aggelen/Spayk.svg?style=for-the-badge)</a>
+
+</div>
+
+
+
 <!-- PROJECT SHIELDS -->
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
-</div>
+
 
 <!-- PROJECT LOGO -->
 <br />
@@ -90,11 +99,3 @@ Distributed under the BSD-3-Clause license. See `LICENSE.txt` for more informati
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
-[stars-shield]: https://img.shields.io/github/stars/aggelen/Spayk.svg?style=for-the-badge
-[stars-url]: https://github.com/aggelen/Spayk/stargazers
-
-[issues-shield]: https://img.shields.io/github/issues/aggelen/Spayk.svg?style=for-the-badge
-[issues-url]: https://github.com/aggelen/Spayk/issues
-
-[license-shield]: https://img.shields.io/github/license/aggelen/Spayk.svg?style=for-the-badge
-[license-url]: https://github.com/aggelen/Spayk/blob/master/LICENSE
