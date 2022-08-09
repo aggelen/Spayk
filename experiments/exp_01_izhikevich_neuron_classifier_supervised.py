@@ -18,7 +18,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
 
-# stimuli
+#%% 
+"""
+The experiment was found to be extremely sensitive to the initialization of the weights. Temporarily 
+the experiment starts from a certain random state. By commenting this part, you can repeat the 
+experiment with different weight initializations.
+"""
+# save rng state
+import pickle
+# rng_state = np.random.get_state()
+# with open('rng_states/exp01_izh_classifier_supervised.pickle', 'wb') as handle:
+#     pickle.dump(rng_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+with open('rng_states/exp01_izh_classifier_supervised.pickle', 'rb') as handle:
+    rng_state = pickle.load(handle)
+np.random.set_state(rng_state)
+
+#%% stimuli
 dataset = SpikingMNIST()
 label_0, img0 = dataset.get_random_sample(label=1, dt=0.1, t_stop=500, jitter=2, max_fr=25)
 label_1, img1 = dataset.get_random_sample(label=4, dt=0.1, t_stop=500, jitter=2, max_fr=25)
