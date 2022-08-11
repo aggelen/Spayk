@@ -20,8 +20,23 @@ sns.set()
 plt.close('all')
 
 # Classification experiment with 3 srm lif neurons
+#%% 
+"""
+The experiment was found to be extremely sensitive to the initialization of the weights. Temporarily 
+the experiment starts from a certain random state. By commenting this part, you can repeat the 
+experiment with different weight initializations.
+"""
+# save rng state
+import pickle
+# rng_state = np.random.get_state()
+# with open('rng_states/exp03_srm_unsup_mnist.pickle', 'wb') as handle:
+#     pickle.dump(rng_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+with open('rng_states/exp03_srm_unsup_mnist.pickle', 'rb') as handle:
+    rng_state = pickle.load(handle)
+np.random.set_state(rng_state)
 
-#%% Stimuli: randomly placed 5 patterns under presence of other signals! 
+#%% stimuli randomly placed 5 patterns under presence of other signals! 
 ## highly important!
 # dataset contains random (t_stop/t_sample) samples of 3 classes
 dt = 1.0

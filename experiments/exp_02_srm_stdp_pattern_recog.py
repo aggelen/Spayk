@@ -21,11 +21,27 @@ plt.close('all')
 # Spike timing dependent plasticity finds the start of repeating patterns in continuous spike trains.
 # Timothée Masquelier, Rudy Guyonneau, Simon J Thorpe
 
-#%% Stimuli
+#%% 
+"""
+The experiment was found to be extremely sensitive to the initialization of the weights. Temporarily 
+the experiment starts from a certain random state. By commenting this part, you can repeat the 
+experiment with different weight initializations.
+"""
+# save rng state
+import pickle
+# rng_state = np.random.get_state()
+# with open('rng_states/exp02_srm_pat_rec.pickle', 'wb') as handle:
+#     pickle.dump(rng_state, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+with open('rng_states/exp02_srm_pat_rec.pickle', 'rb') as handle:
+    rng_state = pickle.load(handle)
+np.random.set_state(rng_state)
+
+#%% stimuli
 # varying spike rates between 0 - 90hz, change speed +-360 Hz/s, cliped between: +- 1800 Hz/s
 no_neurons = 2000
 dt = 1.0   #ms->s
-t_stop = 15000 #ms
+t_stop = 20000 #ms
 
 r = np.random.uniform(0, 90, size=(no_neurons))
 s = np.random.uniform(-1800, 1800, size=(no_neurons))
