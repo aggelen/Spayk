@@ -71,7 +71,18 @@ STDP support now available. Please see [STDP Page](https://github.com/aggelen/Sp
 
 <!-- GETTING STARTED -->
 ## Getting Started
-SPAYK prerequisites and installation here!
+We recommend creating a new environment to use Spayk.
+
+```
+conda create --name spayk python==3.8 matplotlib==3.5.0 numpy==1.21.2 seaborn==0.11.2 tqdm==4.62.3
+```
+
+After creating the environment, you can activate it and run the examples.
+
+```
+conda activate spayk
+
+```
 
 ### Prerequisites
 See `requirements.txt` for more information.
