@@ -87,9 +87,19 @@ conda activate spayk
 ### Prerequisites
 See `requirements.txt` for more information.
 
+Spayk uses torchvision for MNIST experiments. Before you begin, please install it.
+
+```
+pip install torchvision
+```
+
 
 ### Installation
-Publishing SPAYK as an installable package continues. Currently, you can directly download the repo and run it on your machine.
+```
+pip install Spayk
+```
+
+Please see project at: https://pypi.org/project/Spayk/
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
