@@ -1,0 +1,13 @@
+@article{GELEN_2023,
+	doi = {10.55730/1300-0632.3995},
+	url = {https://doi.org/10.55730%2F1300-0632.3995},
+	year = 2023,
+	month = {mar},
+	publisher = {The Scientific and Technological Research Council of Turkey ({TUBITAK}-{ULAKBIM}) - {DIGITAL} {COMMONS} {JOURNALS}},
+	volume = {31},
+	number = {2},
+	pages = {462--480},
+	author = {AYKUT GÖRKEM GELEN and AYTEN ATASOY},
+	title = {{SPAYK}: An environment for spiking neural network simulation},
+	journal = {Turkish Journal of Electrical Engineering and Computer Sciences}
+}
