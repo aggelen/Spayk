@@ -1,1 +1,32 @@
-GELEN, A. G., & ATASOY, A. (2023). SPAYK: An environment for spiking neural network simulation. In Turkish Journal of Electrical Engineering and Computer Sciences (Vol. 31, Issue 2, pp. 462–480). The Scientific and Technological Research Council of Turkey (TUBITAK-ULAKBIM) - DIGITAL COMMONS JOURNALS. https://doi.org/10.55730/1300-0632.3995 
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Gelen"
+  given-names: "Aykut Görkem"
+  orcid: "https://orcid.org/0000-0002-3403-2401"
+- family-names: "Atasoy"
+  given-names: "Ayten"
+  orcid: "https://orcid.org/0000-0003-1188-2902"
+title: "SPAYK: An environment for spiking neural network simulation"
+version: 1.0.0
+doi: /10.55730/1300-0632.3995
+date-released: 2023-02-03
+url: "https://github.com/aggelen/spayk"
+preferred-citation:
+  type: article
+  authors:
+	- family-names: "Gelen"
+		given-names: "Aykut Görkem"
+		orcid: "https://orcid.org/0000-0002-3403-2401"
+	- family-names: "Atasoy"
+		given-names: "Ayten"
+		orcid: "https://orcid.org/0000-0003-1188-2902"
+  doi: "10.55730/1300-0632.3995"
+  journal: "Turkish Journal of Electrical Engineering & Computer Sciences"
+  month: 2
+  start: 462 # First page number
+  end: 480 # Last page number
+  title: "SPAYK: An environment for spiking neural network simulation"
+  issue: 2
+  volume: 31
+  year: 2023
