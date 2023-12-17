@@ -143,11 +143,13 @@ class Tissue:
         #FIXME! single group
         self.neuron_group = neuron_groups[0]
         
+        self.output = None
+        
     def keep_alive(self, stimuli):
-        self.logger = Logger(stimuli.steps, stimuli.dt)
         self.neuron_group.prepare(dt=stimuli.dt)
         
         if stimuli.source_type == 'current':
+            self.logger = Logger(stimuli.steps, stimuli.dt)
             for step in tqdm(stimuli.steps):
                 t = step*stimuli.dt
                 inj_current = stimuli.I()
@@ -155,6 +157,7 @@ class Tissue:
                 v, _ = self.neuron_group()
                 self.logger.log(v, inj_current)
         elif stimuli.source_type == 'spike_train':
+            self.logger = Logger(stimuli.steps, stimuli.dt)
             for step in tqdm(stimuli.steps):
                 t = step*stimuli.dt
                 input_spikes = stimuli.current_spikes()
@@ -164,6 +167,9 @@ class Tissue:
                     self.logger.log_v(out)
                 else:
                     self.logger.log_v(out[0])
+        elif stimuli.source_type == 'spike_instance':
+             input_spikes = stimuli.current_spikes
+             self.output = self.neuron_group(input_spikes)
         else:
             raise Exception('Invalid Stimuli Source Type')
 

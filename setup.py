@@ -10,10 +10,10 @@ setup(
     license='BSD 3-clause',
     packages=['spayk'],
     install_requires=['matplotlib==3.5.0',
-                      'numpy==1.21.2',
+                      'numpy==1.25.1',
                       'seaborn==0.11.2',
                       'tqdm==4.62.3',    
-                      'torchvision==0.10.0',
+                      'torchvision==0.16.0',
                       ],
 
     classifiers=[

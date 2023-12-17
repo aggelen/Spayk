@@ -134,6 +134,16 @@ class ExternalSpikeTrain(SpikeTrain):
         self.current_step += 1
         return spikes
 
+class SpikeInstance:
+    def __init__(self, dt):
+        super().__init__()
+        self.dt = dt
+        self.source_type = 'spike_instance'
+        
+    def load_spikes(self, spikes):
+        self.current_spikes = spikes
+
+
 class PoissonSpikeTrain(SpikeTrain):
     def __init__(self, dt, t_stop, no_neurons, spike_rates):
         super().__init__()
