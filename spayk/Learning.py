@@ -36,10 +36,7 @@ class STDP:
         plt.xlabel(u'Δt Time Difference (ms)')
         plt.ylabel(u'Δw Relative Weight Change')
         plt.grid()
-        
-               
-        
-        
+          
     def update_spike_times(self, t_ti, t_tj, current_spikes):
         t_ti += self.params['dt']
         t_tj += self.params['dt']
@@ -110,3 +107,49 @@ class STDP:
             self.log_delta_w[:,tid] = ltp*self.learning_rate
         
         return np.clip(new_w, 0.0, 1.0)
+    
+    
+    
+class OnlineSTDP:
+    def __init__(self, params):
+        self.params = params
+        self.presyn_traces = np.zeros(params['no_presyn_neurons'])
+        self.postsyn_traces = np.zeros(params['no_postsyn_neurons'])
+        
+        self.presyn_trace_log = []
+        self.postsyn_trace_log = []
+        
+        self.Beta = 1.0
+        self.wmax = 0.1
+        
+    def exponential_trace_update(self, trace, spikes, tau):      
+        d_trace = -trace / tau
+        a = trace + d_trace*self.params['dt']
+        return np.where(spikes == 1, np.ones_like(trace), a)
+    
+    def presynaptic_trace_updates(self, presyn_spikes):
+        self.presyn_traces = self.exponential_trace_update(self.presyn_traces, presyn_spikes, self.params['tau_pre'])
+        self.presyn_trace_log.append(self.presyn_traces)
+    
+    def postsynaptic_trace_updates(self, post_syn_spikes):
+        self.postsyn_traces = self.exponential_trace_update(self.postsyn_traces, post_syn_spikes, self.params['tau_post'])
+        self.postsyn_trace_log.append(self.postsyn_traces)
+        
+    def LTP(self, postsyn_spikes):
+        ltp = np.where(postsyn_spikes,
+                       self.params['lr_ltp']*self.postsyn_traces*self.presyn_traces,
+                       np.full(1, 0.0))
+        
+        return ltp
+
+    def LTD(self, presyn_spikes):
+        ltd = np.where(presyn_spikes,
+                       self.params['lr_ltd']*self.postsyn_traces*self.presyn_traces,
+                       np.full(1, 0.0))
+        
+        return ltd
+    
+    # def weight_change(self, w):
+    #     pre = self.params['eta_post']*self.presyn_traces*np.exp(-self.Beta*(self.wmax - w))
+    #     post = self.params['eta_pre']*self.postsyn_traces*np.exp(-self.Beta*w)
+    #     return pre, post

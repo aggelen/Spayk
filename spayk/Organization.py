@@ -142,8 +142,7 @@ class Tissue:
         # self.dt = params['dt']
         #FIXME! single group
         self.neuron_group = neuron_groups[0]
-        
-        self.output = None
+        self.memb_pot = None
         
     def keep_alive(self, stimuli):
         self.neuron_group.prepare(dt=stimuli.dt)
@@ -169,9 +168,18 @@ class Tissue:
                     self.logger.log_v(out[0])
         elif stimuli.source_type == 'spike_instance':
              input_spikes = stimuli.current_spikes
-             self.output = self.neuron_group(input_spikes)
+             op = self.neuron_group(input_spikes)
+             
+             if isinstance(op, tuple):
+                 self.memb_pot, _ = op
+             else:
+                 self.memb_pot = op
+             
         else:
             raise Exception('Invalid Stimuli Source Type')
+            
+    def get_spikes(self):
+        return self.neuron_group.output_spikes
 
 # class Tissue:
 #     def __init__(self, connected=None, stdp_status=True, name=''):

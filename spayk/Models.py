@@ -59,6 +59,8 @@ class IzhikevichNeuronGroup(NeuronGroup):
         self.u = self.B*self.C
 
         self.I_inj = 0
+        
+        self.output_spikes = None
 
         if self.behaviour == 'synaptic' or self.behaviour == 'recurrent':
             if 'no_syn' in params.keys():
@@ -158,6 +160,8 @@ class IzhikevichNeuronGroup(NeuronGroup):
         #izhikevich's implementation
         fired = np.greater_equal(self.v, self.v_threshold)
         
+        self.output_spikes = fired
+        
         v = np.where(fired, self.C, self.v)
         u = np.where(fired, self.u + self.D, self.u)
             
@@ -178,6 +182,8 @@ class SRMLIFNeuron(NeuronGroup):
 
         self.count = 0
         self.w_mean = []
+        
+        self.output_spikes = None
 
         if params is None:
             pass
@@ -246,6 +252,7 @@ class SRMLIFNeuron(NeuronGroup):
             self.v = self.integrate()
 
         self.w_mean.append(self.w.mean())
+        self.output_spikes = (self.v > self.v_th).astype(int)
         return self.v
 
     def rest(self):
