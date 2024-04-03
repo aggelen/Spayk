@@ -8,7 +8,7 @@ Created on Tue May 10 21:41:25 2022
 import numpy as np
 from tqdm import tqdm
 
-from spayk.Learning import STDP_Engine
+# from spayk.Learning import STDP_Engine
 
 class Simulator:
     def __init__(self):
@@ -183,7 +183,7 @@ class Simulator:
         vs, us, dMat = organization.vs, organization.us, organization.dynamics_matrix
         
         Is = organization.calculate_Is(t, self.synaptic_plasticity)
-        
+        t_stop
         a,b,c,d,vt = dMat[:,0],dMat[:,1],dMat[:,2],dMat[:,3],dMat[:,4]
         
         dv = 0.04*np.square(vs) + 5*vs + 140 - us + Is
@@ -242,4 +242,40 @@ class Simulator:
             w_prev = w_next
             self.results['delta_w'].append(delta_weights)
             
+#%% Forward Time Step Based Simulator
+# Experimental step-based simulator. It may run very slowly.
+
+class NeuralNetwork:
+    def __init__(self):
+        self.neuron_list = []
+        self.connection_tree = []
+        
+    def add_neuron(self, neurons):
+        for neuron in neurons:
+            self.neuron_list.append(neuron)
+            
+    def add_connection(self, connection):
+        pass
+    
+        # neuron connection sources: any other neuron, external stimuli
+
+class DiscreteTimeSimulator:
+    def __init__(self, dt):
+        self.dt = dt
+        self.neural_network = None
+        
+    def create_time(self, t_stop):
+        return np.arange(0, t_stop, self.dt)
+        
+    def keep_alive(self, t_stop):
+        time_hist = self.create_time(t_stop)
+        
+        if self.neural_network is not None:
+            # Main Loop
+            for t in time_hist:
+                for neuron_i, neuron in enumerate(self.neuron_list):
+                    for conn in self.connection_tree[neuron_i]:
+                        pass
+        else:
+            print("ERROR: There is no neural network configured!")
             

@@ -37,7 +37,53 @@ class NeuronGroup:
     def weight_update(self, params=None):
         pass
 
-# Models
+
+#%% LIF
+
+class SynapticLIFNeuron(Neuron):
+    def __init__(self, params):
+        super().__init__()
+        self.dt = params['dt']
+        self.VL = params['VL']
+        self.Vth = params['Vth']
+        self.Vreset = params['Vreset']
+        self.Cm = params['Cm']
+        self.gL = params['gL']
+        self.tau_ref = params['tau_ref']
+                
+        self.t_rest = 0.0
+        self.v = self.VL
+        self.spiked = False
+        
+    def forward(self, I_syn):
+        
+        if self.t_rest > 0.0:
+            #rest
+            self.t_rest -= self.dt
+            
+        else:
+            self.integrate(I_syn)
+            
+            if self.v >= self.Vth:
+                self.fire()
+        
+        if self.spiked:
+            self.spiked = False
+            return self.v + 40e-3
+        else:
+            return self.v
+        
+    def integrate(self, I_syn):
+        dv = (-self.gL*(self.v-self.VL) - I_syn)/self.Cm
+        self.v += dv*self.dt
+        
+    def fire(self):
+        self.v = self.Vreset
+        self.t_rest = self.tau_ref
+        self.spiked = True
+
+
+#%% Models
 class IzhikevichNeuronGroup(NeuronGroup):
     def __init__(self, params):
         super().__init__()

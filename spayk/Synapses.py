@@ -8,6 +8,8 @@ Created on Mon May 16 10:24:08 2022
 import numpy as np
 import matplotlib.pyplot as plt
 
+from spayk.Integrators import EulerIntegrator, RK4Integrator
+
 class Synapse:
     def __init__(self):
        self.channels = {}
@@ -278,4 +280,107 @@ class STDP:
         rec_spikes = np.array(rec_spikes) * dt
         
         return v, rec_spikes, gE, P, M, gE_bar_update
+    
+#%% COBA Synapse
+# I_syn = I_ext_AMPA + I_rec_AMPA + I_rec_NMDA + I_rec_GABA
+
+class COBASynapse:
+    def __init__(self, params):
+        self.dt = params['dt']
+        self.VE = params['VE']
+        self.no_input_neurons = params['no_input_neurons']
         
+        if 'g_ext_AMPA' in params.keys():
+            self.integrator_ext_AMPA = RK4Integrator(dt=self.dt, f=self.d_s_AMPA)
+            self.g_ext_AMPA = params['g_ext_AMPA']
+            self.s_ext_AMPA = np.zeros(self.no_input_neurons)
+            self.tau_AMPA = params['tau_AMPA']
+            
+        if 'g_rec_AMPA' in params.keys():
+            self.integrator_rec_AMPA = RK4Integrator(dt=self.dt, f=self.d_s_AMPA)
+            self.g_rec_AMPA = params['g_rec_AMPA']
+            self.s_rec_AMPA = np.zeros(self.no_input_neurons)
+            self.tau_AMPA = params['tau_AMPA']
+            self.w_rec_AMPA = np.random.rand(1, self.no_input_neurons)
+            
+        if 'g_NMDA' in params.keys():
+            self.g_NMDA = params['g_NMDA']
+            self.Mg2 = params['Mg2+']
+            self.alpha_NMDA = params['alpha_NMDA']
+            self.tau_NMDA_rise = params['tau_NMDA_rise']
+            self.tau_NMDA_decay = params['tau_NMDA_decay']
+            
+            self.x_NMDA = np.zeros(self.no_input_neurons)
+            self.s_NMDA = np.zeros(self.no_input_neurons)
+            
+            self.integrator_x_NMDA = RK4Integrator(dt=self.dt, f=self.d_x_NMDA)
+            self.integrator_s_NMDA = RK4Integrator(dt=self.dt, f=self.d_s_NMDA)
+            
+            self.w_NMDA = np.random.rand(1, self.no_input_neurons)
+            
+        if 'g_GABA' in params.keys():
+            self.g_GABA = params['g_GABA']
+            self.s_GABA = np.zeros(self.no_input_neurons)
+            self.tau_GABA = params['tau_GABA']
+            self.integrator_GABA = RK4Integrator(dt=self.dt, f=self.d_s_GABA)
+            self.w_GABA = np.random.rand(1, self.no_input_neurons)
+       
+        
+        self.spiked = False
+    
+    ###### AMPA
+    def I_ext_AMPA(self, v, t):
+        return self.g_ext_AMPA*(v-self.VE)*self.s_ext_AMPA
+    
+    def I_rec_AMPA(self, v, t):
+        return self.g_rec_AMPA*(v-self.VE)*np.sum(self.w_rec_AMPA*self.s_rec_AMPA)
+    
+    def d_s_AMPA(self, t, s_ext_AMPA, extra_params):
+        presyn_spikes = extra_params[0]
+        ds = -s_ext_AMPA / self.tau_AMPA + np.where(self.spiked, presyn_spikes, np.zeros_like(s_ext_AMPA))
+        return ds
+    
+    def update_s_ext_AMPA(self, t, presyn_spikes):
+        #integrator(t,y0,extra_params as list)
+        self.s_ext_AMPA = self.integrator_ext_AMPA(t, self.s_ext_AMPA, [presyn_spikes])
+        return self.s_ext_AMPA
+    
+    def update_s_rec_AMPA(self, t, presyn_spikes):
+        #integrator(t,y0,extra_params as list)
+        self.s_rec_AMPA = self.integrator_rec_AMPA(t, self.s_rec_AMPA, [presyn_spikes])
+        return self.s_rec_AMPA
+    
+    ###### NMDA 
+    def I_NMDA(self, v, t):
+        return (self.g_NMDA*(v-self.VE)*np.sum(self.w_NMDA*self.s_NMDA)) / (1 + self.Mg2*np.exp(-0.062*v/3.57))
+    
+    def d_s_NMDA(self, t, s_NMDA, extra_params):
+        x = extra_params[0]
+        ds = -s_NMDA / self.tau_NMDA_decay + self.alpha_NMDA*x*(np.ones_like(s_NMDA) - s_NMDA)
+        return ds
+    
+    def d_x_NMDA(self, t, x_NMDA, extra_params):
+        presyn_spikes = extra_params[0]
+        dx= -x_NMDA / self.tau_NMDA_rise + np.where(self.spiked, presyn_spikes, np.zeros_like(x_NMDA))
+        return dx
+    
+    def update_s_NMDA(self, t, presyn_spikes):
+        #integrator(t,y0,extra_params as list)
+        self.x_NMDA = self.integrator_x_NMDA(t, self.x_NMDA, [presyn_spikes])
+        self.s_NMDA = self.integrator_s_NMDA(t, self.s_NMDA, [self.x_NMDA])
+        return self.s_NMDA
+    
+    ###### GABA
+    def I_GABA(self, v, t):
+        return self.g_GABA*(v-self.VE)*np.sum(self.w_GABA*self.s_GABA)
+    
+    def d_s_GABA(self, t, s_GABA, extra_params):
+        presyn_spikes = extra_params[0]
+        ds = -s_GABA / self.tau_GABA + np.where(self.spiked, presyn_spikes, np.zeros_like(s_GABA))
+        return ds
+    
+    def update_s_GABA(self, t, presyn_spikes):
+        #integrator(t,y0,extra_params as list)
+        self.s_GABA = self.integrator_GABA(t, self.s_GABA, [presyn_spikes])
+        return self.s_GABA
+    
