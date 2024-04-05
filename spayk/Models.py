@@ -61,6 +61,8 @@ class SynapticLIFNeuron(Neuron):
         self.v = self.VL
         self.spiked = False
         
+        self.spikes = []
+        
         self.synapses = None
         self.logs = {'s_ext_AMPA': []}
         
@@ -93,8 +95,10 @@ class SynapticLIFNeuron(Neuron):
         
         if self.spiked:
             self.spiked = False
+            self.spikes.append(1)
             return self.v + 40e-3
         else:
+            self.spikes.append(0)
             return self.v
         
     def integrate(self, I_syn):
@@ -105,7 +109,6 @@ class SynapticLIFNeuron(Neuron):
         self.v = self.Vreset
         self.t_rest = self.tau_ref
         self.spiked = True
-
 
 #%% Models
 class IzhikevichNeuronGroup(NeuronGroup):

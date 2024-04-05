@@ -305,8 +305,14 @@ class DiscreteTimeSimulator:
                 neuron_I_logs = []
                 for neuron_id, neuron in enumerate(self.neural_network.neuron_list):
                     #each neuron has a pre-configured channel stack, calculate each channels current
+                    
+                    last_postsynaptic_spike = neuron.spikes[-1] if len(neuron.spikes) else 0
+                    neuron.synapses.spiked = last_postsynaptic_spike
+                    
                     I_syn = neuron.calculate_synaptic_current(time_step, t)[0] -0.9e-9
                     v = neuron(I_syn)
+                
+                    
                     
        
                     #FIXME : append v0
