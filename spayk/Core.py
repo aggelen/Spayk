@@ -7,6 +7,10 @@ Created on Tue May 10 21:41:25 2022
 """
 import numpy as np
 from tqdm import tqdm
+from collections import defaultdict 
+
+from spayk.Configurations import SynapseConfigurator
+from spayk.Synapses import COBASynapses
 
 # from spayk.Learning import STDP_Engine
 
@@ -183,7 +187,7 @@ class Simulator:
         vs, us, dMat = organization.vs, organization.us, organization.dynamics_matrix
         
         Is = organization.calculate_Is(t, self.synaptic_plasticity)
-        t_stop
+        
         a,b,c,d,vt = dMat[:,0],dMat[:,1],dMat[:,2],dMat[:,3],dMat[:,4]
         
         dv = 0.04*np.square(vs) + 5*vs + 140 - us + Is
@@ -246,36 +250,71 @@ class Simulator:
 # Experimental step-based simulator. It may run very slowly.
 
 class NeuralNetwork:
-    def __init__(self):
+    def __init__(self, dt):
+        self.dt = dt
+        self.neuron_id_counter = 0
+        
         self.neuron_list = []
-        self.connection_tree = []
+        self.external_sources = []
         
     def add_neuron(self, neurons):
         for neuron in neurons:
             self.neuron_list.append(neuron)
+            self.neuron_id_counter += 1
+            
+    def add_externals(self, externals):
+        for ext in externals:
+            self.external_sources.append(ext)
             
     def add_connection(self, connection):
-        pass
+        s = connection.split(";")
+        for cnn in s[1:]:
+            ch, target = cnn.split('@')
+            
+            current_config = SynapseConfigurator(self.dt)
+            
+            if ch.strip() == "EXT_AMPA":
+                target_stim_id = int(target[1:])
+                current_config.create_external_AMPA_channel(self.external_sources[target_stim_id])
+                
+            synapses = COBASynapses(current_config.generate_config())
+            self.neuron_list[int(s[0][1:])].synapses = synapses
     
-        # neuron connection sources: any other neuron, external stimuli
-
 class DiscreteTimeSimulator:
     def __init__(self, dt):
         self.dt = dt
         self.neural_network = None
         
+        #FIXME : need better logger
+        self.v_logs = []
+        self.I_logs = []
+        
+    def configure_neural_network(self, neural_network):
+        self.neural_network = neural_network
+        
     def create_time(self, t_stop):
         return np.arange(0, t_stop, self.dt)
         
     def keep_alive(self, t_stop):
-        time_hist = self.create_time(t_stop)
+        self.time_hist = self.create_time(t_stop)
         
         if self.neural_network is not None:
             # Main Loop
-            for t in time_hist:
-                for neuron_i, neuron in enumerate(self.neuron_list):
-                    for conn in self.connection_tree[neuron_i]:
-                        pass
+            for time_step, t in enumerate(self.time_hist):
+                neuron_v_logs = []
+                neuron_I_logs = []
+                for neuron_id, neuron in enumerate(self.neural_network.neuron_list):
+                    #each neuron has a pre-configured channel stack, calculate each channels current
+                    I_syn = neuron.calculate_synaptic_current(time_step, t)[0] -0.9e-9
+                    v = neuron(I_syn)
+                    
+       
+                    #FIXME : append v0
+                    neuron_v_logs.append(v*1e3)
+                    neuron_I_logs.append(I_syn)
+                    
+                self.v_logs.append(neuron_v_logs)
+                self.I_logs.append(neuron_I_logs)
         else:
             print("ERROR: There is no neural network configured!")
             

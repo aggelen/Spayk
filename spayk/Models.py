@@ -17,6 +17,12 @@ from spayk.Utils import izhikevich_dynamics_selector
 class Neuron:
     def __init__(self):
         pass
+    
+    def __call__(self, data=None):
+        if data is None:
+            return self.forward()
+        else:
+            return self.forward(data)
 
 class NeuronGroup:
     def __init__(self):
@@ -54,6 +60,24 @@ class SynapticLIFNeuron(Neuron):
         self.t_rest = 0.0
         self.v = self.VL
         self.spiked = False
+        
+        self.synapses = None
+        self.logs = {'s_ext_AMPA': []}
+        
+    def calculate_synaptic_current(self, time_step, t):        
+        I_syn = 0.0
+        
+        for s in self.synapses.channel_stack:
+            if s == 'ext_AMPA':
+                #FIXME : [0] -> multiple ext channels?   
+                presyn_spikes = self.synapses.sources['ext_AMPA'][0].spikes[0,time_step]
+                s_ext_AMPA = self.synapses.update_s_ext_AMPA(t, presyn_spikes)
+                I_ext_AMPA = self.synapses.I_ext_AMPA(self.v, t)
+                I_syn += I_ext_AMPA
+                
+                self.logs['s_ext_AMPA'].append(s_ext_AMPA[0])
+                
+        return I_syn
         
     def forward(self, I_syn):
         

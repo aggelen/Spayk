@@ -284,11 +284,17 @@ class STDP:
 #%% COBA Synapse
 # I_syn = I_ext_AMPA + I_rec_AMPA + I_rec_NMDA + I_rec_GABA
 
-class COBASynapse:
+class COBASynapses:
     def __init__(self, params):
         self.dt = params['dt']
         self.VE = params['VE']
         self.no_input_neurons = params['no_input_neurons']
+        
+        if 'channel_stack' in params.keys():
+            self.channel_stack = params['channel_stack']
+        
+        if 'sources' in params.keys():
+            self.sources = params['sources']
         
         if 'g_ext_AMPA' in params.keys():
             self.integrator_ext_AMPA = RK4Integrator(dt=self.dt, f=self.d_s_AMPA)
@@ -319,6 +325,7 @@ class COBASynapse:
             self.w_NMDA = np.random.rand(1, self.no_input_neurons)
             
         if 'g_GABA' in params.keys():
+            self.VL = params['VL']
             self.g_GABA = params['g_GABA']
             self.s_GABA = np.zeros(self.no_input_neurons)
             self.tau_GABA = params['tau_GABA']
@@ -372,7 +379,7 @@ class COBASynapse:
     
     ###### GABA
     def I_GABA(self, v, t):
-        return self.g_GABA*(v-self.VE)*np.sum(self.w_GABA*self.s_GABA)
+        return self.g_GABA*(v-self.VL)*np.sum(self.w_GABA*self.s_GABA)
     
     def d_s_GABA(self, t, s_GABA, extra_params):
         presyn_spikes = extra_params[0]
