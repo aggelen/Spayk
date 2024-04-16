@@ -64,7 +64,17 @@ class SynapticLIFNeuron(Neuron):
         self.spikes = []
         
         self.synapses = None
-        self.logs = {'s_ext_AMPA': []}
+        self.logs = {'s_ext_AMPA': [], 's_rec_AMPA': []}
+        
+        if 'visual_style' in params.keys():
+            self.visual_style = params['visual_style']
+        else:
+            self.visual_style = "\"k.\", markersize=20"
+            
+        if 'visual_position' in params.keys():
+            self.visual_position = params['visual_position']
+        else:
+            self.visual_position = np.random.randint(-25,25,2)
         
     def calculate_synaptic_current(self, time_step, t):        
         I_syn = 0.0
@@ -75,9 +85,17 @@ class SynapticLIFNeuron(Neuron):
                 presyn_spikes = self.synapses.sources['ext_AMPA'][0].spikes[0,time_step]
                 s_ext_AMPA = self.synapses.update_s_ext_AMPA(t, presyn_spikes)
                 I_ext_AMPA = self.synapses.I_ext_AMPA(self.v, t)
-                I_syn += I_ext_AMPA
+                I_syn += I_ext_AMPA[0]
                 
                 self.logs['s_ext_AMPA'].append(s_ext_AMPA[0])
+                
+            if s == 'rec_AMPA':
+                presyn_spikes = self.synapses.sources['rec_AMPA'][0].spiked
+                s_rec_AMPA = self.synapses.update_s_rec_AMPA(t, presyn_spikes)
+                I_rec_AMPA = self.synapses.I_rec_AMPA(self.v, t)
+                I_syn += I_rec_AMPA
+                
+                self.logs['s_rec_AMPA'].append(s_rec_AMPA[0])
                 
         return I_syn
         

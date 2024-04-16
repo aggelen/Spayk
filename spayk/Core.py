@@ -11,6 +11,7 @@ from collections import defaultdict
 
 from spayk.Configurations import SynapseConfigurator
 from spayk.Synapses import COBASynapses
+from spayk.Visualization import NetworkVisualizer
 
 # from spayk.Learning import STDP_Engine
 
@@ -257,14 +258,19 @@ class NeuralNetwork:
         self.neuron_list = []
         self.external_sources = []
         
+        self.visualizer = NetworkVisualizer()
+        
     def add_neuron(self, neurons):
         for neuron in neurons:
             self.neuron_list.append(neuron)
             self.neuron_id_counter += 1
             
+            self.visualizer.add_node(neuron.visual_style, neuron.visual_position)
+            
     def add_externals(self, externals):
         for ext in externals:
             self.external_sources.append(ext)
+            
             
     def add_connection(self, connection):
         s = connection.split(";")
@@ -277,13 +283,37 @@ class NeuralNetwork:
                 target_stim_id = int(target[1:])
                 current_config.create_external_AMPA_channel(self.external_sources[target_stim_id])
                 
+            if ch.strip() == "REC_AMPA":
+                target_neuron_id = int(target[1:])
+                current_config.create_recurrent_AMPA_channel(self.neuron_list[target_neuron_id])
+                
             synapses = COBASynapses(current_config.generate_config())
             self.neuron_list[int(s[0][1:])].synapses = synapses
+            
+    def __no_neurons__(self):
+        return len(self.neuron_list)
+
+#%% Logger
+class Logger:
+    def __init__(self):
+        self.neuron_v_traces = None
+        
+    def generate_traces(self, no_neurons, no_time_steps):
+        self.neuron_v_traces = np.empty((no_neurons, no_time_steps))
+        self.neuron_I_traces = np.empty((no_neurons, no_time_steps))
+        
+    def update_neuron_traces(self, neuron_id, time_step, v, I):
+        self.neuron_v_traces[neuron_id, time_step] = v
+        self.neuron_I_traces[neuron_id, time_step] = I          #total synaptic current
     
+#%% Simulator
+
 class DiscreteTimeSimulator:
     def __init__(self, dt):
         self.dt = dt
         self.neural_network = None
+        
+        self.simulation_log = Logger()
         
         #FIXME : need better logger
         self.v_logs = []
@@ -297,6 +327,10 @@ class DiscreteTimeSimulator:
         
     def keep_alive(self, t_stop):
         self.time_hist = self.create_time(t_stop)
+        self.simulation_log.time_hist = self.time_hist
+        
+        self.simulation_log.generate_traces(self.neural_network.__no_neurons__(), len(self.time_hist))
+
         
         if self.neural_network is not None:
             # Main Loop
@@ -309,18 +343,12 @@ class DiscreteTimeSimulator:
                     last_postsynaptic_spike = neuron.spikes[-1] if len(neuron.spikes) else 0
                     neuron.synapses.spiked = last_postsynaptic_spike
                     
-                    I_syn = neuron.calculate_synaptic_current(time_step, t)[0] -0.9e-9
+                    I_syn = neuron.calculate_synaptic_current(time_step, t) - 0.9e-9
                     v = neuron(I_syn)
-                
                     
+                    self.simulation_log.update_neuron_traces(neuron_id, time_step, v*1e3, I_syn)
                     
-       
-                    #FIXME : append v0
-                    neuron_v_logs.append(v*1e3)
-                    neuron_I_logs.append(I_syn)
-                    
-                self.v_logs.append(neuron_v_logs)
-                self.I_logs.append(neuron_I_logs)
+
         else:
             print("ERROR: There is no neural network configured!")
             

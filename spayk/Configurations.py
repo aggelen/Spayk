@@ -24,7 +24,8 @@ class NeuronConfigurator:
                 'Vreset': -55e-3,
                 'Cm': 0.5e-9,
                 'gL': 25e-9,
-                'tau_ref': 2e-3}
+                'tau_ref': 2e-3,
+                'visual_style': "\"k^\", markersize=10"}
 
     @staticmethod
     def lif_interneuron(dt):
@@ -37,14 +38,15 @@ class NeuronConfigurator:
                 'Vreset': -55e-3,
                 'Cm': 0.2e-9,
                 'gL': 20e-9,
-                'tau_ref': 1e-3}
+                'tau_ref': 1e-3,
+                'visual_style': "\"r.\", markersize=20"}
 
 
 class SynapseConfigurator:
     def __init__(self, dt):
         self.dt = dt
         self.no_input_neurons = 0
-        self.sources = {'ext_AMPA': []}
+        self.sources = {'ext_AMPA': [], 'rec_AMPA': []}
         self.channel_stack = []
         self.configuration = {}
         
@@ -58,6 +60,20 @@ class SynapseConfigurator:
                                    'no_input_neurons': self.no_input_neurons,
                                    'VE': 0,
                                    'g_ext_AMPA': 2.1,
+                                   'tau_AMPA': 2e-3,
+                                   'sources': self.sources
+                                   })
+        
+    def create_recurrent_AMPA_channel(self, source):
+        self.no_input_neurons += 1
+        
+        self.channel_stack.append('rec_AMPA')
+        self.sources['rec_AMPA'].append(source)
+        
+        self.configuration.update({'dt': self.dt,
+                                   'no_input_neurons': self.no_input_neurons,
+                                   'VE': 0,
+                                   'g_rec_AMPA': 0.05,
                                    'tau_AMPA': 2e-3,
                                    'sources': self.sources
                                    })

@@ -5,6 +5,7 @@ Created on Sat May 28 19:38:31 2022
 
 @author: aggelen
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
@@ -40,3 +41,34 @@ def plot_voltage_traces(voltages, dt=0.1, selected=None):
     for i, sid in enumerate(selected):
         plt.subplot(selected.shape[0], 1, i+1)
         plt.plot(time_array, voltages[sid])
+        
+        
+class NetworkVisualizer:
+    def __init__(self):
+        self.plot_command = "plt.figure()"
+    
+    def add_node(self, style, position):
+        self.plot_command += os.linesep + "plt.plot(" + str(position[0]) + ", " + str(position[1]) + ", " + style + ")"
+    
+    def add_edge(self):
+        pass
+    
+class TraceVisualizer:
+    def __init__(self, log=None):
+        self.log = log
+        
+    def plot_v_trace_of_neuron(self, neuron_id):
+        if isinstance(neuron_id, int):
+            plt.figure()
+            plt.plot(self.log.time_hist, self.log.neuron_v_traces[neuron_id, :])
+            plt.title("V Trace of Neuron #{}".format(neuron_id))
+            plt.ylabel('Memb. Pot. (mV)')
+            plt.xlabel("Time (s)")
+            
+    def plot_I_trace_of_neuron(self, neuron_id):
+        if isinstance(neuron_id, int):
+            plt.figure()
+            plt.plot(self.log.time_hist, self.log.neuron_I_traces[neuron_id, :])
+            plt.title("Total Synaptic Current Trace of Neuron #{}".format(neuron_id))
+            plt.ylabel('Synaptic Current (A)')
+            plt.xlabel("Time (s)")
