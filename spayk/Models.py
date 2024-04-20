@@ -64,7 +64,7 @@ class SynapticLIFNeuron(Neuron):
         self.spikes = []
         
         self.synapses = None
-        self.logs = {'s_ext_AMPA': [], 's_rec_AMPA': []}
+        self.logs = {'s_ext_AMPA': [], 's_rec_AMPA': [], 's_rec_GABA': [], 's_rec_NMDA': []}
         
         if 'visual_style' in params.keys():
             self.visual_style = params['visual_style']
@@ -90,12 +90,28 @@ class SynapticLIFNeuron(Neuron):
                 self.logs['s_ext_AMPA'].append(s_ext_AMPA[0])
                 
             if s == 'rec_AMPA':
-                presyn_spikes = self.synapses.sources['rec_AMPA'][0].spiked
+                presyn_spikes = self.synapses.sources['rec_AMPA'][0].spikes[-1] if len(self.synapses.sources['rec_AMPA'][0].spikes) else 0
                 s_rec_AMPA = self.synapses.update_s_rec_AMPA(t, presyn_spikes)
                 I_rec_AMPA = self.synapses.I_rec_AMPA(self.v, t)
                 I_syn += I_rec_AMPA
                 
                 self.logs['s_rec_AMPA'].append(s_rec_AMPA[0])
+                
+            if s == 'rec_NMDA':
+                presyn_spikes = self.synapses.sources['rec_NMDA'][0].spikes[-1] if len(self.synapses.sources['rec_NMDA'][0].spikes) else 0
+                s_rec_NMDA = self.synapses.update_s_NMDA(t, presyn_spikes)
+                I_rec_NMDA = self.synapses.I_NMDA(self.v, t)
+                I_syn += I_rec_NMDA
+                
+                self.logs['s_rec_NMDA'].append(s_rec_NMDA[0])
+                
+            if s == 'rec_GABA':
+                presyn_spikes = self.synapses.sources['rec_GABA'][0].spikes[-1] if len(self.synapses.sources['rec_GABA'][0].spikes) else 0
+                s_rec_GABA = self.synapses.update_s_GABA(t, presyn_spikes)
+                I_rec_GABA = self.synapses.I_GABA(self.v, t)
+                I_syn += I_rec_GABA
+                
+                self.logs['s_rec_GABA'].append(s_rec_GABA[0])
                 
         return I_syn
         
@@ -117,7 +133,8 @@ class SynapticLIFNeuron(Neuron):
             return self.v + 40e-3
         else:
             self.spikes.append(0)
-            return self.v
+            #FIXME: clip may be unnecessary
+            return np.clip(self.v, -70e-3, 100e-3)
         
     def integrate(self, I_syn):
         dv = (-self.gL*(self.v-self.VL) - I_syn)/self.Cm

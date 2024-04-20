@@ -274,10 +274,9 @@ class NeuralNetwork:
             
     def add_connection(self, connection):
         s = connection.split(";")
+        current_config = SynapseConfigurator(self.dt)
         for cnn in s[1:]:
             ch, target = cnn.split('@')
-            
-            current_config = SynapseConfigurator(self.dt)
             
             if ch.strip() == "EXT_AMPA":
                 target_stim_id = int(target[1:])
@@ -287,8 +286,16 @@ class NeuralNetwork:
                 target_neuron_id = int(target[1:])
                 current_config.create_recurrent_AMPA_channel(self.neuron_list[target_neuron_id])
                 
-            synapses = COBASynapses(current_config.generate_config())
-            self.neuron_list[int(s[0][1:])].synapses = synapses
+            if ch.strip() == "REC_GABA":
+                target_neuron_id = int(target[1:])
+                current_config.create_recurrent_GABA_channel(self.neuron_list[target_neuron_id])
+                
+            if ch.strip() == "REC_NMDA":
+                target_neuron_id = int(target[1:])
+                current_config.create_recurrent_NMDA_channel(self.neuron_list[target_neuron_id])
+                
+        synapses = COBASynapses(current_config.generate_config())
+        self.neuron_list[int(s[0][1:])].synapses = synapses
             
     def __no_neurons__(self):
         return len(self.neuron_list)
