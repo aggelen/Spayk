@@ -283,6 +283,192 @@ class STDP:
     
 #%% COBA Synapse
 # I_syn = I_ext_AMPA + I_rec_AMPA + I_rec_NMDA + I_rec_GABA
+class ChannelParameters:
+    experimental_pyramidal_cell_params = {"g_ext_ampa": 2.1,
+                                        "g_rec_ampa": 0.05,
+                                        "g_rec_nmda": 0.165,
+                                        "g_rec_gaba": 1.3}
+
+    experimental_interneuron_params = {"g_ext_ampa": 1.62,
+                                       "g_rec_ampa": 0.04,
+                                       "g_rec_nmda": 0.13,
+                                       "g_rec_gaba": 1.0}
+
+
+    AMPA_ext_to_pyramidal_cell = {'g_ext_ampa': 2.1,
+                                  'VE': 0,
+                                  'tau_AMPA': 2e-3}
+    
+    AMPA_ext_to_interneuron = {'g_ext_ampa': 1.62,
+                               'VE': 0,
+                               'tau_AMPA': 2e-3}
+    
+    NMDA = {'Mg2+': 1e-3,
+            'alpha_NMDA': 0.5e-3,
+            'tau_NMDA_rise': 2e-3,
+            'tau_NMDA_decay': 100e-3}
+        
+    @staticmethod
+    def get_channel_matrices(neuron_conf, conn_matrix_stim, conn_matrix_rec):
+        
+        conn_ext_ampa = conn_matrix_stim[0]
+        conn_rec_ampa = conn_matrix_rec[1]
+        conn_rec_nmda = conn_matrix_rec[2]
+        
+        g_ext_ampa = []
+        g_rec_ampa = []
+        g_rec_nmda = []
+        g_rec_gaba = []
+        
+        for neuron_type in neuron_conf:
+            if neuron_type == 'PyramidalCell':
+                g_ext_ampa.append(np.full(conn_ext_ampa.shape[1], ChannelParameters.experimental_pyramidal_cell_params['g_ext_ampa']))
+                g_rec_ampa.append(np.full(conn_rec_ampa.shape[1], ChannelParameters.experimental_pyramidal_cell_params['g_rec_ampa']))
+                g_rec_nmda.append(np.full(conn_rec_ampa.shape[1], ChannelParameters.experimental_pyramidal_cell_params['g_rec_nmda']))
+                g_rec_gaba.append(np.full(conn_rec_ampa.shape[1], ChannelParameters.experimental_pyramidal_cell_params['g_rec_gaba']))
+            elif neuron_type == 'Interneuron':
+                g_ext_ampa.append(np.full(conn_ext_ampa.shape[1], ChannelParameters.experimental_interneuron_params['g_ext_ampa']))     
+                g_rec_ampa.append(np.full(conn_rec_ampa.shape[1], ChannelParameters.experimental_interneuron_params['g_rec_ampa']))
+                g_rec_nmda.append(np.full(conn_rec_ampa.shape[1], ChannelParameters.experimental_interneuron_params['g_rec_nmda']))
+                g_rec_gaba.append(np.full(conn_rec_ampa.shape[1], ChannelParameters.experimental_interneuron_params['g_rec_gaba']))
+                
+        ext_ampa = {'g_ext_ampa': np.array(g_ext_ampa),
+                    'tau_ext_ampa': 2e-3*np.ones_like(conn_matrix_stim[0]),
+                    'VE': np.zeros_like(conn_matrix_stim[0])}
+        
+        rec_ampa = {'g_rec_ampa': np.array(g_rec_ampa),
+                    'tau_rec_ampa': 2e-3*np.ones_like(conn_matrix_rec[1]),
+                    'VE': np.zeros_like(conn_matrix_rec[1])}
+        
+        rec_nmda = {'VE': np.zeros_like(conn_matrix_rec[2]),
+                    'Mg2+': 1e-3,
+                    'alpha_NMDA': 0.5e-3,
+                    'tau_NMDA_rise': 2e-3,
+                    'tau_NMDA_decay': 100e-3,
+                    'g_rec_nmda': np.array(g_rec_nmda)}
+        
+        rec_gaba = {'VE': 0,
+                    'VL': -70e-3,
+                    'g_rec_gaba': np.array(g_rec_gaba),
+                    'tau_GABA': 5e-3}
+        
+        return ext_ampa, rec_ampa, rec_nmda, rec_gaba
+
+    
+class VectorizedCOBASynapses:
+    def __init__(self, dt, neuron_configuration, stimuli_connections, recurrent_connections):
+        self.dt = dt
+        self.neuron_configuration = neuron_configuration
+        self.stimuli_connections = stimuli_connections
+        self.recurrent_connections = recurrent_connections
+        
+        self.integrator_ext_AMPA = RK4Integrator(dt=self.dt, f=self.d_s_AMPA)
+        self.s_ext_AMPA = np.zeros_like(self.stimuli_connections[0])
+        
+        self.integrator_rec_AMPA = RK4Integrator(dt=self.dt, f=self.d_s_AMPA)
+        self.s_rec_AMPA = np.zeros_like(self.recurrent_connections[1])
+        
+        self.x_NMDA = np.zeros_like(self.recurrent_connections[2])
+        self.s_NMDA = np.zeros_like(self.recurrent_connections[2])
+        
+        self.integrator_x_NMDA = RK4Integrator(dt=self.dt, f=self.d_x_NMDA)
+        self.integrator_s_NMDA = RK4Integrator(dt=self.dt, f=self.d_s_NMDA)
+        
+        self.s_GABA = np.zeros_like(self.recurrent_connections[3])
+        self.integrator_GABA = RK4Integrator(dt=self.dt, f=self.d_s_GABA)
+        
+    def render_parameter_matrices(self):
+        ext_ampa, rec_ampa , rec_nmda, rec_gaba = ChannelParameters.get_channel_matrices(self.neuron_configuration, self.stimuli_connections , self.recurrent_connections)
+        
+        self.parameter_matrices = {'ext_ampa': ext_ampa,
+                                   'rec_ampa': rec_ampa,
+                                   'rec_nmda': rec_nmda,
+                                   'rec_gaba': rec_gaba}
+    
+    # AMPA
+    def I_ext_AMPA(self, v, t):
+        v_matrix = np.tile(np.expand_dims(v, 1), self.s_ext_AMPA.shape[1])
+        return self.parameter_matrices['ext_ampa']['g_ext_ampa']*(v_matrix-self.parameter_matrices['ext_ampa']['VE'])*self.s_ext_AMPA*self.stimuli_connections[0]
+    
+    def update_s_ext_AMPA(self, t, presyn_spikes, postsyn_spikes):
+        #integrator(t,y0,extra_params as list)
+        self.s_ext_AMPA = self.integrator_ext_AMPA(t, self.s_ext_AMPA, [presyn_spikes, postsyn_spikes, 'ext_ampa'])
+        
+    def d_s_AMPA(self, t, s_ext_AMPA, extra_params):
+        presyn_spikes, postsyn_spikes, mode = extra_params
+        if mode == 'ext_ampa':
+            is_spiked = np.tile(np.expand_dims(postsyn_spikes, 1), presyn_spikes.shape[0])
+            ds = -s_ext_AMPA / self.parameter_matrices[mode]['tau_'+mode] + np.where(is_spiked, presyn_spikes, np.zeros_like(s_ext_AMPA))
+        else:
+            is_spiked = np.tile(np.expand_dims(postsyn_spikes, 1), postsyn_spikes.shape[0])
+            ds = -s_ext_AMPA / self.parameter_matrices[mode]['tau_'+mode] + np.where(is_spiked, postsyn_spikes, np.zeros_like(s_ext_AMPA))
+        return ds
+    
+    # REC AMPA
+    def update_s_rec_AMPA(self, t, presyn_spikes, postsyn_spikes):
+        #integrator(t,y0,extra_params as list)
+        self.s_rec_AMPA = self.integrator_rec_AMPA(t, self.s_rec_AMPA, [presyn_spikes, postsyn_spikes, 'rec_ampa'])
+    
+    def I_rec_AMPA(self, v, t):
+        v_matrix = np.tile(np.expand_dims(v, 1), self.s_rec_AMPA.shape[1])
+        return self.parameter_matrices['rec_ampa']['g_rec_ampa']*(v_matrix-self.parameter_matrices['rec_ampa']['VE'])*(self.recurrent_connections[1]*self.s_rec_AMPA)
+         
+    ###### NMDA 
+    def update_s_NMDA(self, t, presyn_spikes, postsyn_spikes):
+        #integrator(t,y0,extra_params as list)
+        self.x_NMDA = self.integrator_x_NMDA(t, self.x_NMDA, [presyn_spikes, postsyn_spikes, 'rec_nmda'])
+        self.s_NMDA = self.integrator_s_NMDA(t, self.s_NMDA,  [presyn_spikes, postsyn_spikes, 'rec_nmda_x' ,self.x_NMDA])
+        return self.s_NMDA
+    
+    
+    def I_NMDA(self, v, t):
+        v_matrix = np.tile(np.expand_dims(v, 1), self.s_NMDA.shape[1])
+        return self.parameter_matrices['rec_nmda']['g_rec_nmda']*(v_matrix-self.parameter_matrices['rec_nmda']['VE'])*(self.recurrent_connections[2]*self.s_NMDA) / (1 + self.parameter_matrices['rec_nmda']['Mg2+']*np.exp(-0.062*v/3.57))
+    
+    def d_s_NMDA(self, t, s_NMDA, extra_params):
+        presyn_spikes, postsyn_spikes, mode, x = extra_params
+        ds = -s_NMDA / self.parameter_matrices['rec_nmda']['tau_NMDA_decay'] + self.parameter_matrices['rec_nmda']['alpha_NMDA']*x*(np.ones_like(s_NMDA) - s_NMDA)
+        return ds
+    
+    def d_x_NMDA(self, t, x_NMDA, extra_params):
+        presyn_spikes, postsyn_spikes, mode = extra_params
+        is_spiked = np.tile(np.expand_dims(postsyn_spikes, 1), postsyn_spikes.shape[0])
+        dx= -x_NMDA / self.parameter_matrices['rec_nmda']['tau_NMDA_rise'] + np.where(is_spiked, postsyn_spikes, np.zeros_like(x_NMDA))
+        return dx
+    
+    ## GABA
+    def I_GABA(self, v, t):
+        v_matrix = np.tile(np.expand_dims(v, 1), self.s_GABA.shape[1])
+        return self.parameter_matrices['rec_gaba']['g_rec_gaba']*(v_matrix-self.parameter_matrices['rec_gaba']['VL'])*(self.recurrent_connections[3]*self.s_GABA)
+    
+    def d_s_GABA(self, t, s_GABA, extra_params):
+        presyn_spikes, postsyn_spikes = extra_params
+        is_spiked = np.tile(np.expand_dims(postsyn_spikes, 1), postsyn_spikes.shape[0])
+        ds = -s_GABA / self.parameter_matrices['rec_gaba']['tau_GABA']  + np.where(is_spiked, postsyn_spikes, np.zeros_like(s_GABA))
+        return ds
+    
+    def update_s_GABA(self, t, presyn_spikes, postsyn_spikes):
+        self.s_GABA = self.integrator_GABA(t, self.s_GABA, [presyn_spikes, postsyn_spikes])
+    
+
+    
+    def calculate_external_synaptic_currents(self, presyn_spikes, postsyn_spikes, v, time_step, t):
+        self.update_s_ext_AMPA(t, presyn_spikes, postsyn_spikes)
+        return np.sum(self.I_ext_AMPA(v, t), 1)
+    
+    def calculate_recurrent_synaptic_currents(self, presyn_spikes, postsyn_spikes, v, time_step, t):
+        self.update_s_rec_AMPA(t, presyn_spikes, postsyn_spikes)
+        self.update_s_NMDA(t, presyn_spikes, postsyn_spikes)
+        self.update_s_GABA(t, presyn_spikes, postsyn_spikes)
+        
+        I_rec_ampa = np.sum(self.I_rec_AMPA(v, t), 1)
+        I_rec_nmda = np.sum(self.I_NMDA(v, t), 1)
+        I_rec_gaba = np.sum(self.I_GABA(v, t), 1)
+        
+        return I_rec_ampa, I_rec_nmda, I_rec_gaba
+    
+        
+        
 
 class COBASynapses:
     def __init__(self, params):

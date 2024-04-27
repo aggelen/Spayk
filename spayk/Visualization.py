@@ -72,3 +72,19 @@ class TraceVisualizer:
             plt.title("Total Synaptic Current Trace of Neuron #{}".format(neuron_id))
             plt.ylabel('Synaptic Current (A)')
             plt.xlabel("Time (s)")
+            
+    def raster_plot_of_whole_network(self):
+        spikes = np.array(self.log.neuron_spikes)
+        
+        spike_times = []
+        for row in spikes:
+            spike_times.append(np.argwhere(row).flatten())
+        
+        plt.eventplot(spike_times)
+        
+        plt.xlabel('Neuron ID')
+        plt.ylabel("Time (ms)")
+        
+        
+        
+        

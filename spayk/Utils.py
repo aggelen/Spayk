@@ -5,7 +5,13 @@ Created on Wed Jun 29 21:27:52 2022
 
 @author: aggelen
 """
+import itertools
+import networkx as nx
+import os
 import numpy as np
+from collections import defaultdict
+from datetime import datetime
+from spayk.Synapses import VectorizedCOBASynapses
 
 neuron_dynamics = {'regular_spiking': 0,
                    'intrinsically_bursting': 1,
@@ -83,3 +89,133 @@ def izhikevich_dynamics_selector(s):
     D = np.select(cond_list, d_list, 2.0)
     return A,B,C,D
 
+class ConnectionManager:
+    def __init__(self, neural_network, receptors):
+        self.neural_network = neural_network
+        self.receptors = receptors
+        
+        self.no_stimuli = self.neural_network.no_stimuli
+        self.no_neurons = self.neural_network.no_neurons
+        self.no_channels = len(receptors)
+        
+        self.recurrent_connection_matrix = np.zeros((self.no_channels, self.no_neurons, self.no_neurons))
+        self.stimuli_connection_matrix = np.zeros((self.no_channels, self.no_neurons, self.no_stimuli))     # matrix rows: neurons, cols, stims
+        
+    def create_pairs(self, source, target):
+        # return list(itertools.product(source, target))
+        return list(zip(source,target))
+        
+    def connect_neurons_to_stimuli(self, source_stim_idx, target_neuron_idx, channels, w=1.0):
+        for channel in channels:
+            channel_id = self.receptors.index(channel)
+            pairs = self.create_pairs(target_neuron_idx, source_stim_idx)       # matrix rows: neurons, cols, stims
+            for pid, p in enumerate(pairs):
+                if isinstance(w, list):
+                    self.stimuli_connection_matrix[channel_id][p] = w[pid]
+                else:
+                    self.stimuli_connection_matrix[channel_id][p] = w
+    
+    def connect_neurons_recurrent(self, pairs, channels, w):
+        for channel in channels:
+            channel_id = self.receptors.index(channel)
+            for pid, p in enumerate(pairs):
+                if isinstance(w, list):
+                    self.recurrent_connection_matrix[channel_id][p] = w[pid]
+                else:
+                    self.recurrent_connection_matrix[channel_id][p] = w
+    
+    def render_synapses(self):
+        self.synapses = VectorizedCOBASynapses(self.neural_network.dt,
+                                               self.neural_network.neuron_configuration, 
+                                               self.stimuli_connection_matrix, 
+                                               self.recurrent_connection_matrix)
+        
+        self.synapses.render_parameter_matrices()
+        
+        return self.synapses
+            
+            
+                    
+# class ConnectionManager:
+#     def __init__(self, neural_network):
+#         self.neural_network = neural_network
+#         #  TargetNeuronID; CHANNEL@SourceNeuronId; CHANNEL@SourceNeuronId; CHANNEL@SourceNeuronId; ....
+#         self.source_list = []
+#         self.channel_list = []
+        
+#         self.target_dict = defaultdict(list)
+    
+        
+#         self.graph_string = """"""
+
+#     def connect_one_to_one(self, target_neuron_idx, channels, source_neuron_idx):
+#         ## from source neuron to target neuron         source ----> channel -----> target
+#         for i in range(len(source_neuron_idx)):
+#             current_line = self.target_dict[target_neuron_idx[i]]
+#             if isinstance(channels, list):
+#                 if channels[i] == 'EXT_AMPA':
+#                     to_be_appended = channels[i]+"@E{}".format(source_neuron_idx[i])+"; "
+#                 else:
+#                     to_be_appended = channels[i]+"@N{}".format(source_neuron_idx[i])+"; "
+#                 if not to_be_appended in current_line:
+#                     current_line.append[to_be_appended] 
+#             else:
+#                 if channels == 'EXT_AMPA':
+#                     to_be_appended = channels+"@E{}".format(source_neuron_idx[i])+"; "
+#                 else:
+#                     to_be_appended = channels+"@N{}".format(source_neuron_idx[i])+"; "
+                
+#                 if not to_be_appended in current_line:
+#                     current_line.append(to_be_appended) 
+                    
+#     def connect_others(self, target_neuron_id, channels, other_neuron_idx):
+#         for i in range(len(other_neuron_idx)):
+#             current_line = self.target_dict[target_neuron_id]
+#             pass
+                       
+#     def render_graph(self, model_save_path, model_name):
+#         if model_save_path.endswith('.spayk'):
+#             path = model_save_path
+#         else:
+#             path = model_save_path + ".spayk"
+            
+#         now_time = datetime.now()
+#         formatted_time = now_time.strftime('%Y-%m-%d %H:%M:%S')    
+            
+#         with open(path, 'w') as f:
+#             f.write('##### SPAYK NEURAL NETWORK GRAPH HEADER #####\n')
+#             f.write('##### Model Name: {}\n'.format(model_name))
+#             f.write('##### Creation Date: {}\n'.format(formatted_time))
+#             f.write('\n')
+#             f.write('##### SPAYK NEURAL NETWORK GRAPH NODES #####\n')
+#             for n_id, n in enumerate(self.neural_network.neuron_list):
+#                 f.write('N{}; {}\n'.format(n_id, n.type))
+                
+#             f.write('\n')
+#             f.write('##### SPAYK NEURAL NETWORK GRAPH EDGES #####\n')
+#             for k, v in self.target_dict.items():
+#                 line = "N{}; ".format(k)
+#                 for cnn in v:
+#                     line += cnn
+#                 line = line.rstrip()[:-1]
+#                 line += "\n"
+#                 f.write(line)
+            
+            
+#     def load_graph(self, path):
+#         with open(path) as file:
+#             counter = -1
+#             is_reading_edges = False
+#             for line in file:
+#                 counter += 1
+#                 if counter == 1:
+#                     model_name = line[18:]
+#                 if counter == 2:
+#                     creation_date = line[21:]
+                
+#                 if is_reading_edges:
+#                     self.neural_network.add_connection(line)
+                
+#                 if line == '##### SPAYK NEURAL NETWORK GRAPH EDGES #####\n':
+#                     is_reading_edges = True
+                    

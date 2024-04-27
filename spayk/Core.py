@@ -7,11 +7,14 @@ Created on Tue May 10 21:41:25 2022
 """
 import numpy as np
 from tqdm import tqdm
+import networkx as nx
 from collections import defaultdict 
 
 from spayk.Configurations import SynapseConfigurator
 from spayk.Synapses import COBASynapses
 from spayk.Visualization import NetworkVisualizer
+from spayk.Utils import ConnectionManager
+from spayk.Models import LIFNeuronGroup
 
 # from spayk.Learning import STDP_Engine
 
@@ -151,7 +154,7 @@ class Simulator:
             
             tissue.inject_spike_train(p_syn_spike)
             v, u = tissue()
-            
+            ConnectionManager
             # Store values
             self.results['I_in'].append(tissue.I)
             self.results['v_out'].append(v)
@@ -250,7 +253,40 @@ class Simulator:
 #%% Forward Time Step Based Simulator
 # Experimental step-based simulator. It may run very slowly.
 
-class NeuralNetwork:
+class VectorizedLIFNeuralNetwork:
+    def __init__(self, params):
+        self.dt = params['dt']
+        self.no_neurons = params['no_neurons']
+        self.no_stimuli = params['no_stimuli']
+        
+        # self.neuron_configuration = params['neuron_configuration']
+        
+        # self.connection_manager = None
+        
+        self.neuron_group = LIFNeuronGroup(params)
+        
+        # self.graph = nx.Graph()
+        # self.node_color_map = []
+        
+        # self.stimuli_node_idx = []
+        
+        # #nodes starts from stimuli
+        # for i in range(self.no_stimuli):
+        #     self.graph.add_node(i, type='stimuli')
+        #     self.node_color_map.append('red')
+        #     self.stimuli_node_idx.append()
+            
+        # for i in range(i+1, i+self.no_neurons+1):
+        #     self.graph.add_node(i, type='neuron')
+        #     self.node_color_map.append('blue')
+            
+        # nx.draw(self.graph, node_color=self.node_color_map, with_labels=True)
+        
+ 
+    def __no_neurons__(self):
+        return self.no_neurons
+    
+class DiscreteNeuralNetwork:
     def __init__(self, dt):
         self.dt = dt
         self.neuron_id_counter = 0
@@ -259,6 +295,7 @@ class NeuralNetwork:
         self.external_sources = []
         
         self.visualizer = NetworkVisualizer()
+        # self.connection_manager = ConnectionManager(self)
         
     def add_neuron(self, neurons):
         for neuron in neurons:
@@ -273,8 +310,8 @@ class NeuralNetwork:
             
             
     def add_connection(self, connection):
-        s = connection.split(";")
-        current_config = SynapseConfigurator(self.dt)
+        s = connection.rstrip().split(";")
+        current_config = SynapseConfigurator(self.dt, self.neuron_list[int(s[0][1:])].type)
         for cnn in s[1:]:
             ch, target = cnn.split('@')
             
@@ -296,7 +333,7 @@ class NeuralNetwork:
                 
         synapses = COBASynapses(current_config.generate_config())
         self.neuron_list[int(s[0][1:])].synapses = synapses
-            
+                    
     def __no_neurons__(self):
         return len(self.neuron_list)
 
@@ -304,6 +341,7 @@ class NeuralNetwork:
 class Logger:
     def __init__(self):
         self.neuron_v_traces = None
+        self.neuron_spikes = []
         
     def generate_traces(self, no_neurons, no_time_steps):
         self.neuron_v_traces = np.empty((no_neurons, no_time_steps))
@@ -313,7 +351,19 @@ class Logger:
         self.neuron_v_traces[neuron_id, time_step] = v
         self.neuron_I_traces[neuron_id, time_step] = I          #total synaptic current
     
+    def add_spikes(self, spikes):
+        self.neuron_spikes.append(spikes)
+        
+    
+    
 #%% Simulator
+
+class Simulator:
+    def __init__(self):
+        pass
+    
+    def create_time(self, t_stop):
+        return np.arange(0, t_stop, self.dt)
 
 class DiscreteTimeSimulator:
     def __init__(self, dt):
@@ -341,21 +391,83 @@ class DiscreteTimeSimulator:
         
         if self.neural_network is not None:
             # Main Loop
-            for time_step, t in enumerate(self.time_hist):
-                neuron_v_logs = []
-                neuron_I_logs = []
-                for neuron_id, neuron in enumerate(self.neural_network.neuron_list):
-                    #each neuron has a pre-configured channel stack, calculate each channels current
+            total = len(self.time_hist)
+            with tqdm(total=total, unit="time-step") as pbar:
+                for time_step, t in enumerate(self.time_hist):
+                    neuron_v_logs = []
+                    neuron_I_logs = []
+                    for neuron_id, neuron in enumerate(self.neural_network.neuron_list):
+                        #each neuron has a pre-configured channel stack, calculate each channels current
+                        
+                        last_postsynaptic_spike = neuron.spikes[-1] if len(neuron.spikes) else 0
+                        neuron.synapses.spiked = last_postsynaptic_spike
+                        
+                        I_syn = neuron.calculate_synaptic_current(time_step, t) - 0.9e-9
+                        v = neuron(I_syn)
+                        
+                        self.simulation_log.update_neuron_traces(neuron_id, time_step, v*1e3, I_syn)
+                        
+                        
+                    pbar.update(1)
                     
-                    last_postsynaptic_spike = neuron.spikes[-1] if len(neuron.spikes) else 0
-                    neuron.synapses.spiked = last_postsynaptic_spike
-                    
-                    I_syn = neuron.calculate_synaptic_current(time_step, t) - 0.9e-9
-                    v = neuron(I_syn)
-                    
-                    self.simulation_log.update_neuron_traces(neuron_id, time_step, v*1e3, I_syn)
-                    
+                for n in self.neural_network.neuron_list:
+                    self.simulation_log.add_spikes(n.spikes)
 
         else:
             print("ERROR: There is no neural network configured!")
             
+#%% Vectorized
+class VectorizedSimulator(Simulator):
+    def __init__(self, params):
+        super().__init__()
+        self.dt = params['dt']
+        self.neural_network = params['neural_network']
+        self.stimuli = params['stimuli']
+        
+        self.simulation_log = Logger()
+        
+        self.v_traces = []
+        self.spikes = []
+        
+        self.I_ext_traces = []
+        self.I_rec_ampa_traces = []
+        self.I_rec_nmda_traces = []
+        self.I_rec_gaba_traces = []
+        
+    def keep_alive(self, t_stop):
+        self.time_hist = self.create_time(t_stop)
+        
+        total = len(self.time_hist)
+        with tqdm(total=total, unit="time-step") as pbar:
+            for time_step, t in enumerate(self.time_hist):
+                
+                # self.synapses['stimuli']
+                # self.synapses['recurrent']
+                
+                I_ext_ampa = self.neural_network.synapses.calculate_external_synaptic_currents(self.stimuli[:, time_step],   #presyn spikes
+                                                                                               self.neural_network.spiked,   #postsyn spikes
+                                                                                               self.neural_network.v,
+                                                                                               time_step, 
+                                                                                               t)
+                
+                rec_currents = self.neural_network.synapses.calculate_recurrent_synaptic_currents(self.stimuli[:, time_step],   #presyn spikes
+                                                                                                  self.neural_network.spiked,   #postsyn spikes
+                                                                                                  self.neural_network.v,
+                                                                                                  time_step, 
+                                                                                                  t)
+                I_rec_ampa, I_rec_nmda, I_rec_gaba = rec_currents
+                
+                self.I_ext_traces.append(I_ext_ampa)
+                self.I_rec_ampa_traces.append(I_rec_ampa)
+                self.I_rec_nmda_traces.append(I_rec_nmda)
+                self.I_rec_gaba_traces.append(I_rec_gaba)
+                
+                I_syn = np.full(10, -6e-10) + I_ext_ampa + I_rec_ampa + I_rec_nmda + I_rec_gaba
+                
+                v = self.neural_network(I_syn)
+                
+                self.v_traces.append(v)
+                self.spikes.append(self.neural_network.spiked)
+                    
+                pbar.update(1)
+                

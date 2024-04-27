@@ -8,6 +8,7 @@ Created on Tue May 10 22:17:14 2022
 import numpy as np
 import matplotlib.pyplot as plt
 from spayk.Utils import izhikevich_dynamics_selector
+from spayk.Configurations import NeuronConfigurator
 
 # Ref.
 # https://neuronaldynamics.epfl.ch/online/Ch3.S1.html (Synapses, channel models)
@@ -45,7 +46,6 @@ class NeuronGroup:
 
 
 #%% LIF
-
 class SynapticLIFNeuron(Neuron):
     def __init__(self, params):
         super().__init__()
@@ -65,6 +65,12 @@ class SynapticLIFNeuron(Neuron):
         
         self.synapses = None
         self.logs = {'s_ext_AMPA': [], 's_rec_AMPA': [], 's_rec_GABA': [], 's_rec_NMDA': []}
+        
+        if 'type' in params.keys():
+            self.type = params['type']
+        else:
+            self.type = "standart"
+        
         
         if 'visual_style' in params.keys():
             self.visual_style = params['visual_style']
@@ -144,6 +150,105 @@ class SynapticLIFNeuron(Neuron):
         self.v = self.Vreset
         self.t_rest = self.tau_ref
         self.spiked = True
+        
+
+
+class LIFNeuronGroup(NeuronGroup):
+    def __init__(self, params):
+        super().__init__()
+        self.dt = params['dt']
+        self.no_neurons = params['no_neurons']
+        self.no_stimuli = params['no_stimuli']
+        
+        self.neuron_configuration = params['neuron_configuration']
+        
+        pyramidal_cell_lif_params = NeuronConfigurator.lif_pyramidal_cell(self.dt)
+        interneuron_lif_params = NeuronConfigurator.lif_interneuron(self.dt)
+        
+        Cm, gL, tau_ref = [], [], []
+        for nc in params['neuron_configuration']:
+            if nc == 'PyramidalCell':
+                Cm.append(pyramidal_cell_lif_params['Cm'])
+                gL.append(pyramidal_cell_lif_params['gL'])
+                tau_ref.append(pyramidal_cell_lif_params['tau_ref'])
+            elif nc == 'Interneuron':
+                Cm.append(interneuron_lif_params['Cm'])
+                gL.append(interneuron_lif_params['gL'])
+                tau_ref.append(interneuron_lif_params['tau_ref'])
+        
+        self.VL = pyramidal_cell_lif_params['VL']
+        self.Vth = pyramidal_cell_lif_params['Vth']
+        self.Vreset = pyramidal_cell_lif_params['Vreset']
+        
+        self.Cm = np.array(Cm)
+        self.gL = np.array(gL)
+        self.tau_ref = np.array(tau_ref)
+                
+        self.t_rest = np.zeros(params['no_neurons'])
+        self.v = np.full(params['no_neurons'], self.VL)
+        self.spiked = np.full(params['no_neurons'], False)
+    
+    def forward(self, I_syn):
+        
+        is_in_rest = np.greater(self.t_rest, 0.0)
+        
+        self.t_rest = np.where(is_in_rest, self.t_rest-self.dt, self.t_rest)
+    
+        dv = (-self.gL*(self.v-self.VL) - I_syn)/self.Cm
+        integrated_v = self.v + dv*self.dt
+        
+        self.v = np.where(np.logical_not(is_in_rest), integrated_v, self.v)
+    
+        is_fired = np.greater_equal(self.v, self.Vth)
+        
+        self.v = np.where(is_fired, self.Vreset, self.v)
+        self.t_rest = np.where(is_fired, self.tau_ref, self.t_rest)
+        
+        self.spiked = is_fired
+        
+        return np.where(is_fired, self.v + 40e-3, np.clip(self.v, -70e-3, 100e-3))
+    
+
+    # def calculate_synaptic_current(self, time_step, t):        
+    #     I_syn = 0.0
+        
+    #     for s in self.synapses.channel_stack:
+    #         if s == 'ext_AMPA':
+    #             #FIXME : [0] -> multiple ext channels?   
+    #             presyn_spikes = self.synapses.sources['ext_AMPA'][0].spikes[0,time_step]
+    #             s_ext_AMPA = self.synapses.update_s_ext_AMPA(t, presyn_spikes)
+    #             I_ext_AMPA = self.synapses.I_ext_AMPA(self.v, t)
+    #             I_syn += I_ext_AMPA[0]
+                
+    #             self.logs['s_ext_AMPA'].append(s_ext_AMPA[0])
+                
+    #         if s == 'rec_AMPA':
+    #             presyn_spikes = self.synapses.sources['rec_AMPA'][0].spikes[-1] if len(self.synapses.sources['rec_AMPA'][0].spikes) else 0
+    #             s_rec_AMPA = self.synapses.update_s_rec_AMPA(t, presyn_spikes)
+    #             I_rec_AMPA = self.synapses.I_rec_AMPA(self.v, t)
+    #             I_syn += I_rec_AMPA
+                
+    #             self.logs['s_rec_AMPA'].append(s_rec_AMPA[0])
+                
+    #         if s == 'rec_NMDA':
+    #             presyn_spikes = self.synapses.sources['rec_NMDA'][0].spikes[-1] if len(self.synapses.sources['rec_NMDA'][0].spikes) else 0
+    #             s_rec_NMDA = self.synapses.update_s_NMDA(t, presyn_spikes)
+    #             I_rec_NMDA = self.synapses.I_NMDA(self.v, t)
+    #             I_syn += I_rec_NMDA
+                
+    #             self.logs['s_rec_NMDA'].append(s_rec_NMDA[0])
+                
+    #         if s == 'rec_GABA':
+    #             presyn_spikes = self.synapses.sources['rec_GABA'][0].spikes[-1] if len(self.synapses.sources['rec_GABA'][0].spikes) else 0
+    #             s_rec_GABA = self.synapses.update_s_GABA(t, presyn_spikes)
+    #             I_rec_GABA = self.synapses.I_GABA(self.v, t)
+    #             I_syn += I_rec_GABA
+                
+    #             self.logs['s_rec_GABA'].append(s_rec_GABA[0])
+                
+    #     return I_syn
+        
+   
 
 #%% Models
 class IzhikevichNeuronGroup(NeuronGroup):

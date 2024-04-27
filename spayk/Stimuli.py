@@ -103,7 +103,7 @@ class SpikeTrain:
         else:
             c = colors[0]
 
-        plt.scatter(spike_loc[:,1]*self.dt, spike_loc[:,0], s=3, color=c)
+        plt.scatter(spike_loc[:,1]*self.dt, spike_loc[:,0], s=2, color=c)
         plt.xlim([0,(spike_loc[:,1]*self.dt)[-1]])
 
 
@@ -157,8 +157,8 @@ class PoissonSpikeTrain(SpikeTrain):
         self.source_type = 'spike_train'
         self.current_step = 0
 
-        self.mean_spike_rate = np.sum(self.spikes,1).mean() / (self.t_stop/1000)
-        print('Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
+        # self.mean_spike_rate = np.sum(self.spikes,1).mean() / (self.t_stop/1000)
+        # print('Spike Train Mean Spike Rate: {}'.format(self.mean_spike_rate))
         
 def poisson_spike_train_generator(dt, t_stop, rates, variable_rate=True):
     if variable_rate:
