@@ -1,5 +1,0 @@
-MNIST Classification Example
-==================================
-
-asdasdasdsa
-

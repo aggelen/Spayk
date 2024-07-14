@@ -450,19 +450,21 @@ class VectorizedSimulator(Simulator):
                                                                                                time_step, 
                                                                                                t)
                 
-                rec_currents = self.neural_network.synapses.calculate_recurrent_synaptic_currents(self.stimuli[:, time_step],   #presyn spikes
-                                                                                                  self.neural_network.spiked,   #postsyn spikes
-                                                                                                  self.neural_network.v,
-                                                                                                  time_step, 
-                                                                                                  t)
-                I_rec_ampa, I_rec_nmda, I_rec_gaba = rec_currents
+                # rec_currents = self.neural_network.synapses.calculate_recurrent_synaptic_currents(self.stimuli[:, time_step],   #presyn spikes
+                #                                                                                   self.neural_network.spiked,   #postsyn spikes
+                #                                                                                   self.neural_network.v,
+                #                                                                                   time_step, 
+                #                                                                                   t)
+                # I_rec_ampa, I_rec_nmda, I_rec_gaba = rec_currents
                 
                 self.I_ext_traces.append(I_ext_ampa)
-                self.I_rec_ampa_traces.append(I_rec_ampa)
-                self.I_rec_nmda_traces.append(I_rec_nmda)
-                self.I_rec_gaba_traces.append(I_rec_gaba)
+                # self.I_rec_ampa_traces.append(I_rec_ampa)
+                # self.I_rec_nmda_traces.append(I_rec_nmda)
+                # self.I_rec_gaba_traces.append(I_rec_gaba)
                 
-                I_syn = np.full(10, -6e-10) + I_ext_ampa + I_rec_ampa + I_rec_nmda + I_rec_gaba
+                # I_syn = np.full(10, -6e-10) + I_ext_ampa + I_rec_ampa + I_rec_nmda + I_rec_gaba
+                I_syn = I_ext_ampa 
+                # I_syn = I_ext_ampa + I_rec_ampa + I_rec_nmda + I_rec_gaba
                 
                 v = self.neural_network(I_syn)
                 

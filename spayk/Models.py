@@ -186,6 +186,7 @@ class LIFNeuronGroup(NeuronGroup):
                 
         self.t_rest = np.zeros(params['no_neurons'])
         self.v = np.full(params['no_neurons'], self.VL)
+        
         self.spiked = np.full(params['no_neurons'], False)
     
     def forward(self, I_syn):
@@ -204,7 +205,7 @@ class LIFNeuronGroup(NeuronGroup):
         self.v = np.where(is_fired, self.Vreset, self.v)
         self.t_rest = np.where(is_fired, self.tau_ref, self.t_rest)
         
-        self.spiked = is_fired
+        self.spiked = np.copy(is_fired)
         
         return np.where(is_fired, self.v + 40e-3, np.clip(self.v, -70e-3, 100e-3))
     

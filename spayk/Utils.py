@@ -106,14 +106,27 @@ class ConnectionManager:
         return list(zip(source,target))
         
     def connect_neurons_to_stimuli(self, source_stim_idx, target_neuron_idx, channels, w=1.0):
+        #todo: all to all conn error, to be fixed!
+        
+        # raise(NotImplementedError())
+        
+        # for channel in channels:
+        #     channel_id = self.receptors.index(channel)
+        #     pairs = self.create_pairs(target_neuron_idx, source_stim_idx)       # matrix rows: neurons, cols, stims
+        #     for pid, p in enumerate(pairs):
+        #         if isinstance(w, list):
+        #             self.stimuli_connection_matrix[channel_id][p] = w[pid]
+        #         else:
+        #             self.stimuli_connection_matrix[channel_id][p] = w
+                  
         for channel in channels:
-            channel_id = self.receptors.index(channel)
-            pairs = self.create_pairs(target_neuron_idx, source_stim_idx)       # matrix rows: neurons, cols, stims
-            for pid, p in enumerate(pairs):
-                if isinstance(w, list):
-                    self.stimuli_connection_matrix[channel_id][p] = w[pid]
-                else:
-                    self.stimuli_connection_matrix[channel_id][p] = w
+           channel_id = self.receptors.index(channel)
+           pairs = self.create_pairs(target_neuron_idx, source_stim_idx)       # matrix rows: neurons, cols, stims
+           for pid, p in enumerate(pairs):
+               if isinstance(w, list):
+                   self.stimuli_connection_matrix[channel_id][p] = w[pid]
+               else:
+                   self.stimuli_connection_matrix[channel_id][p] = w
     
     def connect_neurons_recurrent(self, pairs, channels, w):
         for channel in channels:

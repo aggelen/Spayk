@@ -1,16 +1,17 @@
-Spayk Documentation
+.. SPAYK documentation master file, created by
+   sphinx-quickstart on Wed Jul 10 14:43:23 2024.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Welcome to SPAYK's documentation!
 =================================
-Spayk is an open source environment for spiking neural networks. It is a simulator with a simple structure, especially appealing to researchers in the field of robotics and computer vision.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    introduction/index
-   user_guide/index
    tutorials/index
- 
-
 
 
 Indices and tables
