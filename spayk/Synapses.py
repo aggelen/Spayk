@@ -10,6 +10,85 @@ import matplotlib.pyplot as plt
 
 from spayk.Integrators import EulerIntegrator, RK4Integrator
 
+
+#%% New Core
+
+class SynapseGroup:
+    def __init__(self, source=None, target=None, params=None, state_labels=None):
+        self.params = params
+        self.source = source
+        self.target = target
+        self.channels = []
+        self.state_labels = []
+        
+    def AMPA(self, gs, ws, state_label):
+        if isinstance(gs, float):
+            self.g_AMPA = gs
+        else:
+            raise NotImplementedError()
+            
+        if isinstance(ws, np.ndarray):
+            self.w_AMPA = ws
+        elif ws is None:
+                self.w_AMPA = None
+        else:
+            raise NotImplementedError()
+        
+        self.channels.append("AMPA"),
+        self.state_labels.append(state_label)
+        
+    def AMPA_EXT(self, gs, ws, state_label):
+        if isinstance(gs, float):
+            self.g_AMPA_ext = gs
+        else:
+            raise NotImplementedError()
+            
+        if isinstance(ws, np.ndarray):
+            self.w_AMPA_ext = ws
+        elif ws is None:
+                self.w_AMPA_ext = None
+        else:
+            raise NotImplementedError()
+        
+        self.channels.append("AMPA_EXT")
+        self.state_labels.append(state_label)
+        
+    def NMDA(self, gs, ws, state_label):
+        if isinstance(gs, float):
+            self.g_NMDA = gs
+        else:
+            raise NotImplementedError()
+            
+        if isinstance(ws, np.ndarray):
+            self.w_NMDA = ws
+        elif ws is None:
+            self.w_NMDA = None
+        else:
+            raise NotImplementedError()
+        
+        self.channels.append("NMDA")
+        self.state_labels.append(state_label)
+        
+    def GABA(self, gs, ws, state_label):
+         if isinstance(gs, float):
+             self.g_GABA = gs
+         else:
+             raise NotImplementedError()
+             
+         if isinstance(ws, np.ndarray):
+             self.w_GABA = ws
+         elif ws is None:
+             self.w_GABA = None
+         else:
+             raise NotImplementedError()
+         
+         self.channels.append("GABA")
+         self.state_labels.append(state_label)
+
+
+#%% OLD CORE
+
+
 class Synapse:
     def __init__(self):
        self.channels = {}

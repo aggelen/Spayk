@@ -1,4 +1,17 @@
-from setuptools import setup
+from setuptools import setup, find_packages
+from setuptools.extension import Extension
+from Cython.Build import cythonize
+import numpy
+
+extensions = [
+    Extension(
+        "spayk.CIntegrators",
+        ["spayk/CIntegrators.pyx"],
+        # include_dirs=['/some/path/to/include/'], # not needed for fftw unless it is installed in an unusual place
+        # libraries=['fftw3', 'fftw3f', 'fftw3l', 'fftw3_threads', 'fftw3f_threads', 'fftw3l_threads'],
+        # library_dirs=['/some/path/to/include/'], # not needed for fftw unless it is installed in an unusual place
+    ),
+]
 
 setup(
     name='Spayk',
@@ -23,6 +36,8 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
+    include_dirs=[numpy.get_include()],
+    ext_modules = cythonize(extensions)
 )
 
 
