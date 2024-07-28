@@ -6,7 +6,7 @@ Spike Trains
 
 In Spayk, each spike data is formatted as a spike train. You can generate a Poisson Spike Train to work on.::
 
-    from spayk.Data import PoissonSpikeTrain
+    from spayk.Stimuli import PoissonSpikeTrain
     spike_train = PoissonSpikeTrain(3, np.array([15,25,35]), [0, 1, 1e-3])
 
 This indicates that you want to generate a Poisson spike train for three neurons. It is produced at a firing rate of 15,25,35 Hz for each neuron, respectively. The last parameter is a list representing the start time, end time and delta time respectively in seconds.

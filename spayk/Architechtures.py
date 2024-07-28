@@ -8,28 +8,23 @@ Created on Wed Jul 10 15:15:05 2024
 import numpy as np
 from rich import print
 
-from spayk.Solvers import ProblemGenerator, ODESolver
+from spayk.Core import CodeGenerator
+from spayk.Stimuli import *
 
 class SpaykCore:
     def __init__(self):
         self.ready = False
-        
-        self.problem_generator = ProblemGenerator()
-        
-        self.problem = None
-        self.solver = None
-        
-    def set_problem(self, problem):
-        self.problem = problem
-
-    def set_solver(self, solver):
-        self.solver = solver
-        
+        self.codegen = CodeGenerator()
+        self.code_as_string =""""""       
         
     def keep_alive(self, tsim):
         self.ready = True
         if self.ready:
             print("Sim. [bold magenta]Started[/]!") 
+            
+            # loc = {}
+            # exec(self.code_as_string, globals(), loc)
+            # self.problem = loc['problem']
         else:
             print("Error: Sim. [bold magenta]Stopped[/]!") 
         
@@ -44,13 +39,9 @@ class NeuralCircuit(SpaykCore):
        self.synapses = synapses
        self.stimulus = stimulus
        
-       self.problem_generator.analyze_network(neurons, synapses, stimulus)
+       self.codegen.analyze_network(neurons, synapses, stimulus)
        
-       problem = self.problem_generator.make_sysofodes(neurons, synapses, stimulus)
-       
-       self.set_problem(problem)
-       self.set_solver(ODESolver())
-    
+       self.code_as_string = self.codegen.make_sysofodes(neurons, synapses, stimulus)
     
         
 class NeuralNetwork:

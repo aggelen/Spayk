@@ -15,11 +15,20 @@ class Wang2002Config:
     no_N = 8
     no_inh = 4
     
+    #%% Noise and stim params
     no_noise_E = 5
     no_noise_I = 5
     no_stim_A = 5
     no_stim_B = 5
     
+    freq_noise_E = 5
+    freq_noise_I = 5
+    freq_stim_A = 15
+    freq_stim_B = 30
+    
+    stim_time_params = (0, 1, 0.1e-3)
+    
+    #%% 
     assert(no_A+no_B+no_N == no_exc)
     assert(no_exc+no_inh == no_neurons)
     
@@ -39,8 +48,8 @@ class Wang2002Config:
     REF_E = 2.0e-3  # refractory periodof excitatory neurons
     REF_I = 1.0e-3  # refractory period of inhibitory neurons
     
-    exc_neuron_params = {'VE': VE, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_E, 'GL': GL_E, 'REF': REF_E}
-    inh_neuron_params = {'VE': VE, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_I, 'GL': GL_I, 'REF': REF_I}
+    exc_neuron_params = {'VE': VE, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_E, 'GL': GL_E, 'TREF': REF_E}
+    inh_neuron_params = {'VE': VE, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_I, 'GL': GL_I, 'TREF': REF_I}
     
     g_ampa_ext2exc = 2.1*1e-9  # external -> excitatory (AMPA)
     g_ampa_ext2inh = 1.62*1e-9  # external -> inhibitory neurons (AMPA)

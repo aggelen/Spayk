@@ -19,14 +19,19 @@ from spayk.Synapses import SynapseGroup
 
 from experiment_config import Wang2002Config as cfg
 
+from spayk.Stimuli import PoissonActivity
+
 # from spayk.Solvers import ProblemGenerator
 
+#%% generate stimulus
+from spayk.Data import PoissonSpikeTrain
+spike_train = PoissonSpikeTrain(3, np.array([15,25,35]), [0, 1, 1e-3])
 
 #%% Stimulus
-stimulus = {'noiseE': None,
-            'noiseI': None,
-            'stimA': None,
-            'stimB': None}
+stimulus = [PoissonActivity(cfg.no_noise_E, cfg.freq_noise_E, cfg.stim_time_params,'noiseE'),
+            PoissonActivity(cfg.no_noise_I, cfg.freq_noise_E, cfg.stim_time_params, 'noiseI'),
+            PoissonActivity(cfg.no_stim_A, cfg.freq_stim_A, cfg.stim_time_params, 'stimA'),
+            PoissonActivity(cfg.no_stim_B, cfg.freq_stim_B, cfg.stim_time_params,'stimB')]
 
 #%% Neurons
 neurons = [LIFGroup(no_neurons=cfg.no_exc, group_label='E', state_vector=cfg.state_vector, params=cfg.exc_neuron_params),
@@ -94,6 +99,8 @@ nc = NeuralCircuit(neurons, synapses, stimulus)
 
 #%% Simulation
 nc.keep_alive(tsim=1000)
+
+
 
 
 

@@ -18,6 +18,591 @@ from spayk.Models import LIFNeuronGroup
 
 # from spayk.Learning import STDP_Engine
 
+from rich import print as rprint
+from collections import defaultdict
+import pathlib
+import pickle
+
+#%% New Core
+class CodeGenerator:
+    def __init__(self):
+        # self.verbose = True
+        self.code_string = """"""
+        self.has_analyzed = False
+        
+        self.verbose_analyze = True
+        self.verbose_codegen = True
+
+    def analyze_network(self, neurons, synapses, stimului):
+        self.runtime_path = "{}/first_run".format(pathlib.Path().resolve())
+        pathlib.Path(self.runtime_path).mkdir(parents=True, exist_ok=True)
+        
+        neuron_group_labels = []
+        neuron_group_nos = {}
+        total_no_of_neurons = 0
+        
+        self.neuron_labels = []
+        self.neuron_GLs = []
+        self.neuron_VLs = []
+        self.neuron_CMs = []
+        
+        self.neuron_groups = {}
+        
+        stimuli_dict = {}
+        for neurongroup in neurons:
+            self.neuron_groups[neurongroup.group_label] = neurongroup
+            stimuli_dict[neurongroup.group_label] = neurongroup
+            neuron_group_labels.append(neurongroup.group_label)
+            neuron_group_nos[neurongroup.group_label] = neurongroup.no_neurons
+            total_no_of_neurons += neurongroup.no_neurons
+            
+            for i in range(neurongroup.no_neurons):
+                self.neuron_labels.append(neurongroup.neuron_labels[i])
+                self.neuron_GLs.append(neurongroup.params['GL'])
+                self.neuron_VLs.append(neurongroup.params['VL'])
+                self.neuron_CMs.append(neurongroup.params['CM'])
+        
+        self.neuron_labels = np.array(self.neuron_labels)
+        
+        self.neuron_GLs = np.array(self.neuron_GLs)
+        self.neuron_VLs = np.array(self.neuron_VLs)
+        self.neuron_CMs = np.array(self.neuron_CMs)
+        
+        self.neuron_dict = {'GLs': self.neuron_GLs,
+                            'VLs': self.neuron_VLs,
+                            'CMs': self.neuron_CMs,
+                            'neuron_groups': self.neuron_groups}
+        
+        
+        
+        with open('{}/neuron_dict.pickle'.format(self.runtime_path), 'wb') as handle:
+            pickle.dump(self.neuron_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        for stim in stimului:
+            stimuli_dict[stim.group_label] = stim
+            
+        if self.verbose_analyze:
+            rprint("\n[cyan]-- Spayk is analyzing your configuration. --[/cyan]")
+            
+            rprint("\n[red]-- Neuron Info[/red] --")
+            print("Total No of Neurons: {}".format(total_no_of_neurons))
+            for i, ngl in enumerate(neuron_group_labels):
+                print("{} neuron in group {}".format(neuron_group_nos[ngl], ngl))
+                
+                
+        if self.verbose_analyze:
+            rprint("\n[red]-- Synaptic Configuration Info[/red] --")
+            print("Total No of Synaptic Configurations: {}".format(len(synapses)))
+            
+        connection_list = []
+        
+        for synapseconfig in synapses:
+            if self.verbose_analyze:
+                for ch in synapseconfig.channels:
+                    
+                    if ch == 'AMPA':
+                        g = synapseconfig.g_AMPA
+                        W = synapseconfig.w_AMPA
+                    elif ch == 'NMDA':
+                        g = synapseconfig.g_NMDA
+                        W = synapseconfig.w_NMDA
+                    elif ch == 'GABA':
+                        g = synapseconfig.g_GABA
+                        W = synapseconfig.w_GABA
+                    else:
+                        g = synapseconfig.g_AMPA_ext
+                        W = synapseconfig.w_AMPA_ext
+                    
+                    if len(synapseconfig.target.split('[')) > 1:
+                        
+                        conn = {'from': synapseconfig.source,
+                                'to': synapseconfig.target.split('[')[0].strip(),
+                                'channel': ch,
+                                'g': g,
+                                'W': W,
+                                'synapse_params': synapseconfig.params,
+                                'subgroup_operation': True,
+                                'target_subgroup': '['+synapseconfig.target.split('[')[1]}
+                        connection_list.append(conn)
+                          
+                        print("Group {} -> Group {} with {}".format(synapseconfig.source, synapseconfig.target, ch))
+                    else:
+                        conn = {'from': synapseconfig.source,
+                                'to': synapseconfig.target,
+                                'channel': ch,
+                                'g': g,
+                                'W': W,
+                                'synapse_params': synapseconfig.params,
+                                'subgroup_operation': False,
+                                'target_subgroup': None}
+                        connection_list.append(conn)
+                          
+                        print("Group {} -> Group {} with {}".format(synapseconfig.source, synapseconfig.target, ch))
+        
+        self.connection_list = connection_list
+        self.connection_dict = defaultdict(list)
+        self.stimuli_dict = stimuli_dict
+        
+        self.neuron_group_labels = neuron_group_labels
+        self.neuron_group_nos = neuron_group_nos
+        self.total_no_of_neurons = total_no_of_neurons
+        
+        for conn in connection_list:
+            source_stim = stimuli_dict[conn['from']]
+            target_stim = stimuli_dict[conn['to']]
+            
+            if conn['subgroup_operation']:
+                fr = int(conn['target_subgroup'][1:].split(':')[0].strip())
+                to = int(conn['target_subgroup'][1:].split(':')[1][:-1].strip())
+                for target_label in target_stim.neuron_labels[fr:to]:
+                    for source_label in source_stim.neuron_labels:
+                        self.connection_dict[target_label].append(conn['channel']+'<'+source_label+"@{}".format(source_stim.group_label))
+            else:
+                for target_label in target_stim.neuron_labels:
+                    for source_label in source_stim.neuron_labels:
+                        self.connection_dict[target_label].append(conn['channel']+'<'+source_label+"@{}".format(source_stim.group_label))
+                
+        
+        if self.verbose_analyze:
+            rprint("\n[green]-- Network Analyze: OK[/green] --\n")
+            
+        self.has_analyzed = True
+        
+        
+        
+        self.synapse_dict = {'connection_list': connection_list,
+                             'connection_dict': self.connection_dict}
+        
+        with open('{}/synapse_dict.pickle'.format(self.runtime_path), 'wb') as handle:
+            pickle.dump(self.synapse_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    
+    @staticmethod
+    def count_channels_for_a_neuron(conn_list, channel_str):
+        no_of_conns = 0
+        conn_index = []
+        for conn in conn_list:
+            if channel_str in conn:
+                no_of_conns += 1
+                conn_index.append(conn.split('@')[-1])
+        return no_of_conns, conn_index
+                
+    def make_sysofodes(self, neurons, synapses, stimuli):
+        if self.has_analyzed:
+            if self.verbose_analyze:
+                rprint("\n[cyan]-- Spayk runtime code-generation has started! --[/cyan]")
+                
+            
+            
+            #%% create stimuli
+            self.code_string += """import numpy as np\n"""
+            self.code_string += """from spayk.Stimuli import *\nimport pickle\n"""
+            self.code_string += """def load_pickle(pkl_path):\n"""
+            self.code_string += """\twith open(pkl_path, 'rb') as handle:\n"""
+            self.code_string += """\t\treturn pickle.load(handle)"""
+            
+            self.code_string += "#%% Problem\n"
+            self.code_string += """class Problem:\n\tdef __init__(self):\n"""
+            self.code_string += "\t\tself.runtime_path = '{}'\n".format(self.runtime_path)
+            self.code_string += "\t\tself.neuron_dict = load_pickle('{}/neuron_dict.pickle')\n".format(self.runtime_path)
+            self.code_string += "\t\tself.synapse_dict = load_pickle('{}/synapse_dict.pickle')\n\n".format(self.runtime_path)
+            self.code_string += "\t\tself.dt = 0.1e-3\n\n"
+            self.code_string += "\t\tself.spikes = []\n\n"
+            
+            self.code_string += """\t\t#%% Stimuli \n"""
+            self.code_string += "\t\tself.stimuli = {"
+            for stimulus in stimuli:
+                if stimulus.activity_type == 'poisson':
+                    self.code_string += """'{}': PoissonSpikeTrain({},{},{}),\n""".format(stimulus.group_label, 
+                                                                                          stimulus.no_neurons,
+                                                                                          stimulus.firing_rates,
+                                                                                          stimulus.time_params)
+    
+                    
+            self.code_string += "\t\t}\n"
+            
+            self.code_string += "\t\tself.current_stimuli = {"
+            for stimulus in stimuli:
+                if stimulus.activity_type == 'poisson':
+                    self.code_string += """'{}': self.stimuli['{}'].spikes[0],\n""".format(stimulus.group_label, stimulus.group_label)
+            for neuron_group in neurons: 
+                spikes = []
+                for neuron_label in neuron_group.neuron_labels:            
+                    spikes.append(0)
+                self.code_string += """'{}': np.zeros({}),\n""".format(neuron_group.group_label, 
+                                                                       neuron_group.no_neurons)
+            self.code_string += "\t\t}\n"
+            
+            #%% generate variables
+            self.code_string += "\t\t#%% neuron memb. potens.\n"
+            
+            # lif variables vectorized
+            self.code_string += "\t\t# >>>>>>>>> lif variables\n"
+            self.code_string += "\t\tself.V = np.zeros({})\n".format(self.total_no_of_neurons)
+            self.code_string += "\t\tself.t_ref = np.zeros({})\n".format(self.total_no_of_neurons)
+            self.code_string += "\t\tself.I_syn = np.zeros({})\n".format(self.total_no_of_neurons)
+            
+            self.code_string += "\t\tself.neuron_GLs = self.neuron_dict['GLs']\n"
+            self.code_string += "\t\tself.neuron_VLs = self.neuron_dict['VLs']\n"
+            self.code_string += "\t\tself.neuron_CMs = self.neuron_dict['CMs']\n"
+            
+            # self.code_string += "\t\tself.neuron_GLs = np.array(["
+            # for gl in self.neuron_GLs:
+            #     self.code_string += "{},".format(gl)
+            # self.code_string += "])\n"    
+            # self.code_string += "\t\tself.neuron_VLs = np.array(["
+            # for vl in self.neuron_VLs:
+            #     self.code_string += "{},".format(vl)
+            # self.code_string += "])\n"    
+            # self.code_string += "\t\tself.neuron_CMs = np.array(["
+            # for cm in self.neuron_CMs:
+            #     self.code_string += "{},".format(cm)
+            # self.code_string += "])\n"    
+            
+            self.ampa_ext_conn_index_dict = {}
+                    
+            for target_neuron_label, conn_list in self.connection_dict.items():
+                no_ampa, _= self.count_channels_for_a_neuron(conn_list, 'AMPA<')
+                no_nmda, _ = self.count_channels_for_a_neuron(conn_list, 'NMDA<')
+                no_gaba, _ = self.count_channels_for_a_neuron(conn_list, 'GABA<')
+                no_ampa_ext, index_ampa_ext = self.count_channels_for_a_neuron(conn_list, 'AMPA_EXT<')
+                
+                self.ampa_ext_conn_index_dict[target_neuron_label] = np.array(index_ampa_ext)
+                
+                self.code_string += "\t\t# >>>>>>>>> for neuron {}\n".format(target_neuron_label)
+                
+                #lif variables
+                # self.code_string += "\t\tself.V_{} = 0.0\n".format(target_neuron_label)
+                # self.code_string += "\t\tself.t_ref_{} = 0.0\n".format(target_neuron_label)
+                # self.code_string += "\t\tself.I_syn_{} = 0.0\n".format(target_neuron_label)
+                
+                #channel variables
+                #channel variables
+                self.code_string += "\t\tself.s_AMPA_{} = np.zeros({})\n".format(target_neuron_label, no_ampa)
+                self.code_string += "\t\tself.s_NMDA_{} = np.zeros({})\n".format(target_neuron_label, no_nmda)
+                self.code_string += "\t\tself.x_NMDA_{} = np.zeros({})\n".format(target_neuron_label, no_nmda)
+                self.code_string += "\t\tself.s_GABA_{} = np.zeros({})\n".format(target_neuron_label, no_gaba)
+                self.code_string += "\t\tself.s_AMPA_EXT_{} = np.zeros({})\n".format(target_neuron_label, no_ampa_ext)
+
+            self.code_string += "\t\t# derivative reset func\n"  
+            self.code_string += "\t\tself.dx_reset()\n"
+                    
+
+            #%% generate derivative reset func
+            self.code_string += "\t#%% derivative reset func\n"
+            self.code_string += "\tdef dx_reset(self):\n"
+            
+            self.code_string += "\t\tself.d_V = np.zeros({})\n".format(self.total_no_of_neurons)
+            
+            for target_neuron_label, conn_list in self.connection_dict.items():
+                no_ampa, _ = self.count_channels_for_a_neuron(conn_list, 'AMPA<')
+                no_nmda, _ = self.count_channels_for_a_neuron(conn_list, 'NMDA<')
+                no_gaba, _ = self.count_channels_for_a_neuron(conn_list, 'GABA<')
+                no_ampa_ext, _ = self.count_channels_for_a_neuron(conn_list, 'AMPA_EXT<')
+                
+                self.code_string += "\t\t# >>>>>>>>> for neuron {}\n".format(target_neuron_label)
+                
+                #lif variables
+                # self.code_string += "\t\tself.d_V_{} = 0.0\n".format(target_neuron_label)
+                
+                #channel variables
+                self.code_string += "\t\tself.d_s_AMPA_{} = np.zeros({})\n".format(target_neuron_label, no_ampa)
+                self.code_string += "\t\tself.d_s_NMDA_{} = np.zeros({})\n".format(target_neuron_label, no_nmda)
+                self.code_string += "\t\tself.d_x_NMDA_{} = np.zeros({})\n".format(target_neuron_label, no_nmda)
+                self.code_string += "\t\tself.d_s_GABA_{} = np.zeros({})\n".format(target_neuron_label, no_gaba)
+                self.code_string += "\t\tself.d_s_AMPA_EXT_{} = np.zeros({})\n".format(target_neuron_label, no_ampa_ext)
+                        
+            #%% generate euler integration func
+            self.code_string += "\t#%% euler integration func\n"
+            self.code_string += "\tdef integrate_all_euler(self):\n"
+            
+            self.code_string += "\t\tself.V += self.d_V*self.dt\n".format(self.total_no_of_neurons)
+            
+            for target_neuron_label, conn_list in self.connection_dict.items():               
+                self.code_string += "\t\t# >>>>>>>>> for neuron {}\n".format(target_neuron_label)
+                
+                #lif variables
+                # self.code_string += "\t\tself.V_{} += self.d_V_{}*self.dt\n".format(target_neuron_label, target_neuron_label)
+                #channel variables
+                self.code_string += "\t\tself.s_AMPA_{} += self.d_s_AMPA_{}*self.dt\n".format(target_neuron_label, target_neuron_label)
+                self.code_string += "\t\tself.s_NMDA_{} += self.d_s_NMDA_{}*self.dt\n".format(target_neuron_label, target_neuron_label)
+                self.code_string += "\t\tself.x_NMDA_{} += self.d_x_NMDA_{}*self.dt\n".format(target_neuron_label, target_neuron_label)
+                self.code_string += "\t\tself.s_GABA_{} += self.d_s_GABA_{}*self.dt\n".format(target_neuron_label, target_neuron_label)
+                self.code_string += "\t\tself.s_AMPA_EXT_{} += self.d_s_AMPA_EXT_{}*self.dt\n".format(target_neuron_label, target_neuron_label)
+            
+            #%% generate derivative func
+            self.code_string += "\t#%% derivative func\n"
+            self.code_string += "\tdef calculate_dxdt_all(self):\n"
+
+            self.code_string += "\t\tself.dx_reset()\n"
+            
+            self.code_string += "\t\t##% memb pot derivatives\n"
+            
+            self.code_string += "\t\tself.d_V = (-self.neuron_GLs*(self.V - self.neuron_VLs) - self.I_syn) / self.neuron_CMs\n"
+            
+            self.code_string += "\t\t##% channel derivatives\n"
+            
+            for conn in self.connection_list:
+                if conn['channel'] == 'AMPA':
+                    if conn['subgroup_operation']:
+                        # self.code_string += "\t\t# {} ---AMPA---subgroup of---> {}\n".format(conn['from'], conn['to'])
+                        raise NotImplementedError()
+                    else:
+                        self.code_string += "\t\t# {} ---AMPA---> {}\n".format(conn['from'], conn['to'])
+                        for neuron in self.neuron_dict['neuron_groups'][conn['to']].neuron_labels:
+                            self.code_string += "\t\tself.d_s_AMPA_{} += (-self.s_AMPA_{} / {}) + self.current_stimuli['{}'] \n".format(neuron, 
+                                                                                                      neuron, 
+                                                                                                      conn['synapse_params']['tau_AMPA'],
+                                                                                                      conn['from'])
+                            
+                if conn['channel'] == 'NMDA':
+                    if conn['subgroup_operation']:
+                        # self.code_string += "\t\t# {} ---NMDA---subgroup of---> {}\n".format(conn['from'], conn['to'])
+                        raise NotImplementedError()
+                    else:
+                        self.code_string += "\t\t# {} ---NMDA---> {}\n".format(conn['from'], conn['to'])
+                        for neuron in self.neuron_dict['neuron_groups'][conn['to']].neuron_labels:
+                            self.code_string += "\t\tself.d_x_NMDA_{} += (-self.x_NMDA_{} / {}) + self.current_stimuli['{}'] \n".format(neuron, 
+                                                                                                      neuron, 
+                                                                                                      conn['synapse_params']['tau_NMDA_rise'],
+                                                                                                      conn['from'])
+                            self.code_string += "\t\tself.d_s_NMDA_{} += (-self.s_NMDA_{} / {}) + {}*self.x_NMDA_{}*(1 - self.s_NMDA_{}) \n".format(neuron, 
+                                                                                                      neuron, 
+                                                                                                      conn['synapse_params']['tau_NMDA_decay'],
+                                                                                                      conn['synapse_params']['alpha'],
+                                                                                                      neuron,
+                                                                                                      neuron)
+                        
+                if conn['channel'] == 'GABA':
+                    if conn['subgroup_operation']:
+                        # self.code_string += "\t\t# {} ---GABA---subgroup of---> {}\n".format(conn['from'], conn['to'])
+                        raise NotImplementedError()
+                    else:
+                        self.code_string += "\t\t# {} ---GABA---> {}\n".format(conn['from'], conn['to'])
+                        for neuron in self.neuron_dict['neuron_groups'][conn['to']].neuron_labels:
+                            self.code_string += "\t\tself.d_s_GABA_{} += (-self.s_GABA_{} / {}) + self.current_stimuli['{}'] \n".format(neuron, 
+                                                                                                      neuron, 
+                                                                                                      conn['synapse_params']['tau_GABA'],
+                                                                                                      conn['from'])
+            
+                if conn['channel'] == 'AMPA_EXT':
+                    if conn['subgroup_operation']:
+                        self.code_string += "\t\t# {} ---AMPA_EXT---subgroup of---> {}\n".format(conn['from'], conn['to'])
+                        for neuron in self.neuron_dict['neuron_groups'][conn['to']].neuron_labels:
+                            connection_index = self.ampa_ext_conn_index_dict[neuron]
+                            conn_filter = np.array(connection_index) == conn['from']
+                            if conn_filter.sum():
+                                idx_min = min(np.where(conn_filter)[0])
+                                idx_max = max(np.where(conn_filter)[0])+1
+                                
+                                self.code_string += "\t\tself.d_s_AMPA_EXT_{}[{}:{}] += (-self.s_AMPA_EXT_{}[{}:{}] / {}) + self.current_stimuli['{}'][{}:{}]  \n".format(neuron, 
+                                                                                                          idx_min,
+                                                                                                          idx_max,
+                                                                                                          neuron, 
+                                                                                                          idx_min,
+                                                                                                          idx_max,
+                                                                                                          conn['synapse_params']['tau_AMPA'],
+                                                                                                          conn['from'],
+                                                                                                          idx_min,
+                                                                                                          idx_max)
+                    else:
+                        self.code_string += "\t\t# {} ---AMPA_EXT---> {}\n".format(conn['from'], conn['to'])
+                        for neuron in self.neuron_dict['neuron_groups'][conn['to']].neuron_labels:
+                            connection_index = self.ampa_ext_conn_index_dict[neuron]
+                            conn_filter = np.array(connection_index) == conn['from']
+                            idx_min = min(np.where(conn_filter)[0])
+                            idx_max = max(np.where(conn_filter)[0])+1
+                            
+                            self.code_string += "\t\tself.d_s_AMPA_EXT_{}[{}:{}] += (-self.s_AMPA_EXT_{}[{}:{}] / {}) + self.current_stimuli['{}'][{}:{}]  \n".format(neuron, 
+                                                                                                      idx_min,
+                                                                                                      idx_max,
+                                                                                                      neuron, 
+                                                                                                      idx_min,
+                                                                                                      idx_max,
+                                                                                                      conn['synapse_params']['tau_AMPA'],
+                                                                                                      conn['from'],
+                                                                                                      idx_min,
+                                                                                                      idx_max)
+                        
+            #%% generate current func
+            self.code_string += "\t#%% synaptic current calculation func\n"
+            self.code_string += "\tdef calculate_synaptic_currents(self):\n"
+            
+            # Exc to exc:  cols from, rows to
+            #    |   A       B       N
+            #  ---------------------------------
+            #  A |   w+      w-      w-
+            #  B |   w-      w+      w-
+            #  N |   1       1       1
+            
+            for conn_id, conn in enumerate(self.connection_list):
+                if conn['channel'] == 'AMPA':
+                    if conn['subgroup_operation']:
+                        # self.code_string += "\t\t# {} ---AMPA---subgroup of---> {}\n".format(conn['from'], conn['to'])
+                        raise NotImplementedError()
+                    else:
+                        self.code_string += "\t\t# {} ---AMPA---> {}\n".format(conn['from'], conn['to'])
+                        for neuron in self.neuron_dict['neuron_groups'][conn['to']].neuron_labels:
+                            self.code_string += "\t\tself.I_Syn[{}] += {}*(self.V[{}]-{})*(self.synapse_dict['connection_list'][{}]['W']) \n".format(np.argwhere(self.neuron_labels == neuron).flatten()[0],
+                                                                                             conn['g'],
+                                                                                             np.argwhere(self.neuron_labels == neuron).flatten()[0],
+                                                                                             self.neuron_dict['neuron_groups'][conn['to']].params['VE'],
+                                                                                             conn_id)
+            
+            # for synapse_group in synapses:
+            #     for channel_id, channel in enumerate(synapse_group.channels):
+            #         channel_state = synapse_group.state_labels[channel_id]
+            #         # recurrent ampa
+            #         if channel == 'AMPA':
+            #             # for every target neurongroup neuron
+            #             for target_neuron_id, target_neuron in enumerate(neurongroup_dict[synapse_group.target].neuron_labels):
+            #                 self.code_string += "\t\tI_{}_{} = ".format(target_neuron, channel_state)
+            #                 self.code_string += "{}*(self.V_{} - {})*(".format(synapse_group.g_AMPA, target_neuron, neurongroup_dict[synapse_group.target].params['VE'])
+                            
+            #                 for wid, w in enumerate(synapse_group.w_AMPA[target_neuron_id]):
+            #                     if wid == 0:
+            #                         self.code_string += "{}*self.{}_{}".format(w, channel_state, neurongroup_dict[synapse_group.source].neuron_labels[wid])
+            #                     else:
+            #                         if w != 0:
+            #                             self.code_string += " + {}*self.{}_{}".format(w, channel_state, neurongroup_dict[synapse_group.source].neuron_labels[wid])
+            #                 self.code_string += ")\n"
+
+            #         if channel == 'NMDA':
+            #             # for every target neurongroup neuron
+            #             for target_neuron_id, target_neuron in enumerate(neurongroup_dict[synapse_group.target].neuron_labels):
+            #                 self.code_string += "\t\tI_{}_{} = ".format(target_neuron, 'sNMDA')
+            #                 self.code_string += "({}*(self.V_{} - {})/(1 + ({}*np.exp(-0.062*self.V_{})/3.57)))*(".format(synapse_group.g_NMDA, 
+            #                                                                             target_neuron, 
+            #                                                                             neurongroup_dict[synapse_group.target].params['VE'],
+            #                                                                             synapse_group.params['C_Mg'],
+            #                                                                             target_neuron)
+                            
+            #                 for wid, w in enumerate(synapse_group.w_NMDA[target_neuron_id]):
+            #                     if wid == 0:
+            #                         self.code_string += "{}*self.{}_{}".format(w, 'sNMDA', neurongroup_dict[synapse_group.source].neuron_labels[wid])
+            #                     else:
+            #                         if w != 0:
+            #                             self.code_string += " + {}*self.{}_{}".format(w, 'sNMDA', neurongroup_dict[synapse_group.source].neuron_labels[wid])
+            #                 self.code_string += ")\n"
+                        
+            #         if channel == 'GABA':
+            #             # for every target neurongroup neuron
+            #             for target_neuron_id, target_neuron in enumerate(neurongroup_dict[synapse_group.target].neuron_labels):
+            #                 self.code_string += "\t\tI_{}_{} = ".format(target_neuron, channel_state)
+            #                 self.code_string += "{}*(self.V_{} - {})*(".format(synapse_group.g_GABA, target_neuron, neurongroup_dict[synapse_group.target].params['VE'])
+                            
+            #                 for wid, w in enumerate(synapse_group.w_GABA[target_neuron_id]):
+            #                     if wid == 0:
+            #                         self.code_string += "{}*self.{}_{}".format(w, channel_state, neurongroup_dict[synapse_group.source].neuron_labels[wid])
+            #                     else:
+            #                         if w != 0:
+            #                             self.code_string += " + {}*self.{}_{}".format(w, channel_state, neurongroup_dict[synapse_group.source].neuron_labels[wid])
+            #                 self.code_string += ")\n"
+                        
+            #         if channel == 'AMPA_EXT':
+            #             # for every target neurongroup neuron
+            #             tg = synapse_group.target.split('[')
+            #             for target_neuron_id, target_neuron in enumerate(neurongroup_dict[tg[0]].neuron_labels):
+            #                 code_string = """"""
+            #                 code_string += "\t\tI_{}_{} = ".format(target_neuron, channel_state)
+            #                 code_string += "{}*(self.V_{} - {})*self.{}_{}\n".format(synapse_group.g_AMPA_ext, target_neuron, neurongroup_dict[tg[0]].params['VE'],
+            #                                                                               channel_state, target_neuron)
+                            
+            #                 if code_string not in self.code_string:
+            #                     self.code_string += code_string
+            
+            # # calc syn currents
+            # self.code_string += "\t\t#%% calculate synaptic currents\n"
+            
+            # for neuron_group in neurons:
+            #     for neuron_id, neuron_label in enumerate(neuron_group.neuron_labels):
+            #         assocs = neuron_group.neuron_channel_assoc_table[neuron_id]
+            #         #assocs ampa ampaext nmda gaba
+            #         self.code_string += "\t\tself.Isyn_{} = ".format(neuron_label)
+            #         if assocs[0]:
+            #             self.code_string += "+ I_{}_{}".format(neuron_label, 'sAMPA')
+            #         if assocs[1]:
+            #             self.code_string += "+ I_{}_{}".format(neuron_label, 'sAMPA_EXT')
+            #         if assocs[2]:
+            #             self.code_string += "+ I_{}_{}".format(neuron_label, 'sNMDA')
+            #         if assocs[3]:
+            #             self.code_string += "+ I_{}_{}".format(neuron_label, 'sGABA')
+                    
+            #         self.code_string += "\n"
+            
+            # #%% firing controls
+            # self.code_string += "\t#%% firing control\n"
+            # self.code_string += "\tdef fire(self):\n"
+            
+            # for neuron_group in neurons: 
+            #     self.code_string += "\t\tcurrent_spikes_{} = []\n".format(neuron_group.group_label)
+            # # check resting time
+            
+            # # if tr >0:
+            # # v[it] = V_reset
+            # #       tr = tr-1
+            # # elif v[it] >= V_th:         #reset voltage and record spike event
+            # #       rec_spikes.append(it)
+            # #       v[it] = V_reset
+            # #       tr = tref/dt
+            # # #calculate the increment of the membrane potential
+            # # dv = (-(v[it]-V_L) + I[it]/g_L) * (dt/tau_m)
+              
+            # # #update the membrane potential
+            # # v[it+1] = v[it] + dv
+            # concat_list = []
+            # for neuron_group in neurons: 
+            #     for neuron_label in neuron_group.neuron_labels:
+            #         self.code_string += "\t\tif self.t_ref_{} > 0.0:\n".format(neuron_label)
+            #         self.code_string += "\t\t\tself.t_ref_{} -= self.dt\n".format(neuron_label)
+            #         self.code_string += "\t\t\tcurrent_spikes_{}.append(0)\n".format(neuron_group.group_label, neuron_group.group_label)
+            #         self.code_string += "\t\telif self.{}_{} >= {}:\n".format(neuron_group.state_vector[0], neuron_label, neuron_group.params['VT'])
+            #         self.code_string += "\t\t\tself.{}_{} = {}\n".format(neuron_group.state_vector[0], neuron_label, neuron_group.params['VR'])
+            #         self.code_string += "\t\t\tself.t_ref_{} = {}\n".format(neuron_label, neuron_group.params['TREF'])
+            #         self.code_string += "\t\t\tcurrent_spikes_{}.append(1)\n".format(neuron_group.group_label, neuron_group.group_label)
+            #     self.code_string += "\t\tself.current_stimuli['{}'] = current_spikes_{}\n".format(neuron_group.group_label, neuron_group.group_label)
+            #     concat_list.append('current_spikes_{}'.format(neuron_group.group_label))
+                
+            # self.code_string += """\t\tself.spikes.append("""
+            # for cli, cl in enumerate(concat_list):
+            #     if cli == 0:
+            #         self.code_string += """{} """.format(cl)
+            #     else:
+            #         self.code_string += """+ {}""".format(cl)
+            # self.code_string += """)\n"""
+            
+            # #%% data acquisition
+            # # data includes spikes for only the current time step with same labels
+            # self.code_string += "\t#%% data acquisition\n"
+            # self.code_string += "\tdef data_acquisition(self, time_step):\n"
+            
+            # self.code_string += "\t\tself.data = {}\n"
+            
+
+            # #%% generate step func
+            # self.code_string += "\t#%% step func\n"
+            # self.code_string += "\tdef step(self):\n"
+            
+            # self.code_string += "\t\tself.calculate_dxdt_all()\n"
+            # self.code_string += "\t\tself.calculate_synaptic_currents()\n"
+            # self.code_string += "\t\tself.integrate_all_euler()\n"
+            
+            # #%% run the network
+            # self.code_string += "#%% Solution\n"
+            # self.code_string += "problem = Problem()\n"
+        
+        else:
+            print(
+                "Simulation stoped! Please first analyse your problem with ProblemGenerator.analyze_network")
+
+        with open("problem.py", "w") as text_file:
+            text_file.write(self.code_string)
+
+        return self.code_string
+
+
+
+
+#%% Old Core
 class Simulator:
     def __init__(self):
         """

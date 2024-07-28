@@ -1,640 +1,553 @@
 import numpy as np
+from spayk.Stimuli import *
+import pickle
+def load_pickle(pkl_path):
+	with open(pkl_path, 'rb') as handle:
+		return pickle.load(handle)#%% Problem
 class Problem:
 	def __init__(self):
+		self.runtime_path = '/home/gelenag/Dev/Spayk/new_core/first_run'
+		self.neuron_dict = load_pickle('/home/gelenag/Dev/Spayk/new_core/first_run/neuron_dict.pickle')
+		self.synapse_dict = load_pickle('/home/gelenag/Dev/Spayk/new_core/first_run/synapse_dict.pickle')
+
 		self.dt = 0.1e-3
+
+		self.spikes = []
+
+		#%% Stimuli 
+		self.stimuli = {'noiseE': PoissonSpikeTrain(5,5,(0, 1, 0.0001)),
+'noiseI': PoissonSpikeTrain(5,5,(0, 1, 0.0001)),
+'stimA': PoissonSpikeTrain(5,15,(0, 1, 0.0001)),
+'stimB': PoissonSpikeTrain(5,30,(0, 1, 0.0001)),
+		}
+		self.current_stimuli = {'noiseE': self.stimuli['noiseE'].spikes[0],
+'noiseI': self.stimuli['noiseI'].spikes[0],
+'stimA': self.stimuli['stimA'].spikes[0],
+'stimB': self.stimuli['stimB'].spikes[0],
+'E': np.zeros(16),
+'I': np.zeros(4),
+		}
 		#%% neuron memb. potens.
+		# >>>>>>>>> lif variables
+		self.V = np.zeros(20)
+		self.t_ref = np.zeros(20)
+		self.I_syn = np.zeros(20)
+		self.neuron_GLs = self.neuron_dict['GLs']
+		self.neuron_VLs = self.neuron_dict['VLs']
+		self.neuron_CMs = self.neuron_dict['CMs']
 		# >>>>>>>>> for neuron E0
-		self.V_E0 = 0.0
-		self.sAMPA_E0 = 0.0
-		self.sAMPA_EXT_E0 = 0.0
-		self.xNMDA_E0 = 0.0
-		self.sNMDA_E0 = 0.0
-		self.sGABA_E0 = 0.0
+		self.s_AMPA_E0 = np.zeros(16)
+		self.s_NMDA_E0 = np.zeros(16)
+		self.x_NMDA_E0 = np.zeros(16)
+		self.s_GABA_E0 = np.zeros(4)
+		self.s_AMPA_EXT_E0 = np.zeros(10)
 		# >>>>>>>>> for neuron E1
-		self.V_E1 = 0.0
-		self.sAMPA_E1 = 0.0
-		self.sAMPA_EXT_E1 = 0.0
-		self.xNMDA_E1 = 0.0
-		self.sNMDA_E1 = 0.0
-		self.sGABA_E1 = 0.0
+		self.s_AMPA_E1 = np.zeros(16)
+		self.s_NMDA_E1 = np.zeros(16)
+		self.x_NMDA_E1 = np.zeros(16)
+		self.s_GABA_E1 = np.zeros(4)
+		self.s_AMPA_EXT_E1 = np.zeros(10)
 		# >>>>>>>>> for neuron E2
-		self.V_E2 = 0.0
-		self.sAMPA_E2 = 0.0
-		self.sAMPA_EXT_E2 = 0.0
-		self.xNMDA_E2 = 0.0
-		self.sNMDA_E2 = 0.0
-		self.sGABA_E2 = 0.0
+		self.s_AMPA_E2 = np.zeros(16)
+		self.s_NMDA_E2 = np.zeros(16)
+		self.x_NMDA_E2 = np.zeros(16)
+		self.s_GABA_E2 = np.zeros(4)
+		self.s_AMPA_EXT_E2 = np.zeros(10)
 		# >>>>>>>>> for neuron E3
-		self.V_E3 = 0.0
-		self.sAMPA_E3 = 0.0
-		self.sAMPA_EXT_E3 = 0.0
-		self.xNMDA_E3 = 0.0
-		self.sNMDA_E3 = 0.0
-		self.sGABA_E3 = 0.0
+		self.s_AMPA_E3 = np.zeros(16)
+		self.s_NMDA_E3 = np.zeros(16)
+		self.x_NMDA_E3 = np.zeros(16)
+		self.s_GABA_E3 = np.zeros(4)
+		self.s_AMPA_EXT_E3 = np.zeros(10)
 		# >>>>>>>>> for neuron E4
-		self.V_E4 = 0.0
-		self.sAMPA_E4 = 0.0
-		self.sAMPA_EXT_E4 = 0.0
-		self.xNMDA_E4 = 0.0
-		self.sNMDA_E4 = 0.0
-		self.sGABA_E4 = 0.0
+		self.s_AMPA_E4 = np.zeros(16)
+		self.s_NMDA_E4 = np.zeros(16)
+		self.x_NMDA_E4 = np.zeros(16)
+		self.s_GABA_E4 = np.zeros(4)
+		self.s_AMPA_EXT_E4 = np.zeros(10)
 		# >>>>>>>>> for neuron E5
-		self.V_E5 = 0.0
-		self.sAMPA_E5 = 0.0
-		self.sAMPA_EXT_E5 = 0.0
-		self.xNMDA_E5 = 0.0
-		self.sNMDA_E5 = 0.0
-		self.sGABA_E5 = 0.0
+		self.s_AMPA_E5 = np.zeros(16)
+		self.s_NMDA_E5 = np.zeros(16)
+		self.x_NMDA_E5 = np.zeros(16)
+		self.s_GABA_E5 = np.zeros(4)
+		self.s_AMPA_EXT_E5 = np.zeros(10)
 		# >>>>>>>>> for neuron E6
-		self.V_E6 = 0.0
-		self.sAMPA_E6 = 0.0
-		self.sAMPA_EXT_E6 = 0.0
-		self.xNMDA_E6 = 0.0
-		self.sNMDA_E6 = 0.0
-		self.sGABA_E6 = 0.0
+		self.s_AMPA_E6 = np.zeros(16)
+		self.s_NMDA_E6 = np.zeros(16)
+		self.x_NMDA_E6 = np.zeros(16)
+		self.s_GABA_E6 = np.zeros(4)
+		self.s_AMPA_EXT_E6 = np.zeros(10)
 		# >>>>>>>>> for neuron E7
-		self.V_E7 = 0.0
-		self.sAMPA_E7 = 0.0
-		self.sAMPA_EXT_E7 = 0.0
-		self.xNMDA_E7 = 0.0
-		self.sNMDA_E7 = 0.0
-		self.sGABA_E7 = 0.0
+		self.s_AMPA_E7 = np.zeros(16)
+		self.s_NMDA_E7 = np.zeros(16)
+		self.x_NMDA_E7 = np.zeros(16)
+		self.s_GABA_E7 = np.zeros(4)
+		self.s_AMPA_EXT_E7 = np.zeros(10)
 		# >>>>>>>>> for neuron E8
-		self.V_E8 = 0.0
-		self.sAMPA_E8 = 0.0
-		self.sAMPA_EXT_E8 = 0.0
-		self.xNMDA_E8 = 0.0
-		self.sNMDA_E8 = 0.0
-		self.sGABA_E8 = 0.0
+		self.s_AMPA_E8 = np.zeros(16)
+		self.s_NMDA_E8 = np.zeros(16)
+		self.x_NMDA_E8 = np.zeros(16)
+		self.s_GABA_E8 = np.zeros(4)
+		self.s_AMPA_EXT_E8 = np.zeros(5)
 		# >>>>>>>>> for neuron E9
-		self.V_E9 = 0.0
-		self.sAMPA_E9 = 0.0
-		self.sAMPA_EXT_E9 = 0.0
-		self.xNMDA_E9 = 0.0
-		self.sNMDA_E9 = 0.0
-		self.sGABA_E9 = 0.0
+		self.s_AMPA_E9 = np.zeros(16)
+		self.s_NMDA_E9 = np.zeros(16)
+		self.x_NMDA_E9 = np.zeros(16)
+		self.s_GABA_E9 = np.zeros(4)
+		self.s_AMPA_EXT_E9 = np.zeros(5)
 		# >>>>>>>>> for neuron E10
-		self.V_E10 = 0.0
-		self.sAMPA_E10 = 0.0
-		self.sAMPA_EXT_E10 = 0.0
-		self.xNMDA_E10 = 0.0
-		self.sNMDA_E10 = 0.0
-		self.sGABA_E10 = 0.0
+		self.s_AMPA_E10 = np.zeros(16)
+		self.s_NMDA_E10 = np.zeros(16)
+		self.x_NMDA_E10 = np.zeros(16)
+		self.s_GABA_E10 = np.zeros(4)
+		self.s_AMPA_EXT_E10 = np.zeros(5)
 		# >>>>>>>>> for neuron E11
-		self.V_E11 = 0.0
-		self.sAMPA_E11 = 0.0
-		self.sAMPA_EXT_E11 = 0.0
-		self.xNMDA_E11 = 0.0
-		self.sNMDA_E11 = 0.0
-		self.sGABA_E11 = 0.0
+		self.s_AMPA_E11 = np.zeros(16)
+		self.s_NMDA_E11 = np.zeros(16)
+		self.x_NMDA_E11 = np.zeros(16)
+		self.s_GABA_E11 = np.zeros(4)
+		self.s_AMPA_EXT_E11 = np.zeros(5)
 		# >>>>>>>>> for neuron E12
-		self.V_E12 = 0.0
-		self.sAMPA_E12 = 0.0
-		self.sAMPA_EXT_E12 = 0.0
-		self.xNMDA_E12 = 0.0
-		self.sNMDA_E12 = 0.0
-		self.sGABA_E12 = 0.0
+		self.s_AMPA_E12 = np.zeros(16)
+		self.s_NMDA_E12 = np.zeros(16)
+		self.x_NMDA_E12 = np.zeros(16)
+		self.s_GABA_E12 = np.zeros(4)
+		self.s_AMPA_EXT_E12 = np.zeros(5)
 		# >>>>>>>>> for neuron E13
-		self.V_E13 = 0.0
-		self.sAMPA_E13 = 0.0
-		self.sAMPA_EXT_E13 = 0.0
-		self.xNMDA_E13 = 0.0
-		self.sNMDA_E13 = 0.0
-		self.sGABA_E13 = 0.0
+		self.s_AMPA_E13 = np.zeros(16)
+		self.s_NMDA_E13 = np.zeros(16)
+		self.x_NMDA_E13 = np.zeros(16)
+		self.s_GABA_E13 = np.zeros(4)
+		self.s_AMPA_EXT_E13 = np.zeros(5)
 		# >>>>>>>>> for neuron E14
-		self.V_E14 = 0.0
-		self.sAMPA_E14 = 0.0
-		self.sAMPA_EXT_E14 = 0.0
-		self.xNMDA_E14 = 0.0
-		self.sNMDA_E14 = 0.0
-		self.sGABA_E14 = 0.0
+		self.s_AMPA_E14 = np.zeros(16)
+		self.s_NMDA_E14 = np.zeros(16)
+		self.x_NMDA_E14 = np.zeros(16)
+		self.s_GABA_E14 = np.zeros(4)
+		self.s_AMPA_EXT_E14 = np.zeros(5)
 		# >>>>>>>>> for neuron E15
-		self.V_E15 = 0.0
-		self.sAMPA_E15 = 0.0
-		self.sAMPA_EXT_E15 = 0.0
-		self.xNMDA_E15 = 0.0
-		self.sNMDA_E15 = 0.0
-		self.sGABA_E15 = 0.0
+		self.s_AMPA_E15 = np.zeros(16)
+		self.s_NMDA_E15 = np.zeros(16)
+		self.x_NMDA_E15 = np.zeros(16)
+		self.s_GABA_E15 = np.zeros(4)
+		self.s_AMPA_EXT_E15 = np.zeros(5)
 		# >>>>>>>>> for neuron I0
-		self.V_I0 = 0.0
-		self.sAMPA_I0 = 0.0
-		self.sAMPA_EXT_I0 = 0.0
-		self.xNMDA_I0 = 0.0
-		self.sNMDA_I0 = 0.0
-		self.sGABA_I0 = 0.0
+		self.s_AMPA_I0 = np.zeros(16)
+		self.s_NMDA_I0 = np.zeros(16)
+		self.x_NMDA_I0 = np.zeros(16)
+		self.s_GABA_I0 = np.zeros(4)
+		self.s_AMPA_EXT_I0 = np.zeros(5)
 		# >>>>>>>>> for neuron I1
-		self.V_I1 = 0.0
-		self.sAMPA_I1 = 0.0
-		self.sAMPA_EXT_I1 = 0.0
-		self.xNMDA_I1 = 0.0
-		self.sNMDA_I1 = 0.0
-		self.sGABA_I1 = 0.0
+		self.s_AMPA_I1 = np.zeros(16)
+		self.s_NMDA_I1 = np.zeros(16)
+		self.x_NMDA_I1 = np.zeros(16)
+		self.s_GABA_I1 = np.zeros(4)
+		self.s_AMPA_EXT_I1 = np.zeros(5)
 		# >>>>>>>>> for neuron I2
-		self.V_I2 = 0.0
-		self.sAMPA_I2 = 0.0
-		self.sAMPA_EXT_I2 = 0.0
-		self.xNMDA_I2 = 0.0
-		self.sNMDA_I2 = 0.0
-		self.sGABA_I2 = 0.0
+		self.s_AMPA_I2 = np.zeros(16)
+		self.s_NMDA_I2 = np.zeros(16)
+		self.x_NMDA_I2 = np.zeros(16)
+		self.s_GABA_I2 = np.zeros(4)
+		self.s_AMPA_EXT_I2 = np.zeros(5)
 		# >>>>>>>>> for neuron I3
-		self.V_I3 = 0.0
-		self.sAMPA_I3 = 0.0
-		self.sAMPA_EXT_I3 = 0.0
-		self.xNMDA_I3 = 0.0
-		self.sNMDA_I3 = 0.0
-		self.sGABA_I3 = 0.0
+		self.s_AMPA_I3 = np.zeros(16)
+		self.s_NMDA_I3 = np.zeros(16)
+		self.x_NMDA_I3 = np.zeros(16)
+		self.s_GABA_I3 = np.zeros(4)
+		self.s_AMPA_EXT_I3 = np.zeros(5)
+		# derivative reset func
+		self.dx_reset()
 	#%% derivative reset func
 	def dx_reset(self):
-		self.d_V_E0 = 0.0
-		self.d_sAMPA_E0 = 0.0
-		self.d_sAMPA_EXT_E0 = 0.0
-		self.d_xNMDA_E0 = 0.0
-		self.d_sNMDA_E0 = 0.0
-		self.d_sGABA_E0 = 0.0
-		self.d_V_E1 = 0.0
-		self.d_sAMPA_E1 = 0.0
-		self.d_sAMPA_EXT_E1 = 0.0
-		self.d_xNMDA_E1 = 0.0
-		self.d_sNMDA_E1 = 0.0
-		self.d_sGABA_E1 = 0.0
-		self.d_V_E2 = 0.0
-		self.d_sAMPA_E2 = 0.0
-		self.d_sAMPA_EXT_E2 = 0.0
-		self.d_xNMDA_E2 = 0.0
-		self.d_sNMDA_E2 = 0.0
-		self.d_sGABA_E2 = 0.0
-		self.d_V_E3 = 0.0
-		self.d_sAMPA_E3 = 0.0
-		self.d_sAMPA_EXT_E3 = 0.0
-		self.d_xNMDA_E3 = 0.0
-		self.d_sNMDA_E3 = 0.0
-		self.d_sGABA_E3 = 0.0
-		self.d_V_E4 = 0.0
-		self.d_sAMPA_E4 = 0.0
-		self.d_sAMPA_EXT_E4 = 0.0
-		self.d_xNMDA_E4 = 0.0
-		self.d_sNMDA_E4 = 0.0
-		self.d_sGABA_E4 = 0.0
-		self.d_V_E5 = 0.0
-		self.d_sAMPA_E5 = 0.0
-		self.d_sAMPA_EXT_E5 = 0.0
-		self.d_xNMDA_E5 = 0.0
-		self.d_sNMDA_E5 = 0.0
-		self.d_sGABA_E5 = 0.0
-		self.d_V_E6 = 0.0
-		self.d_sAMPA_E6 = 0.0
-		self.d_sAMPA_EXT_E6 = 0.0
-		self.d_xNMDA_E6 = 0.0
-		self.d_sNMDA_E6 = 0.0
-		self.d_sGABA_E6 = 0.0
-		self.d_V_E7 = 0.0
-		self.d_sAMPA_E7 = 0.0
-		self.d_sAMPA_EXT_E7 = 0.0
-		self.d_xNMDA_E7 = 0.0
-		self.d_sNMDA_E7 = 0.0
-		self.d_sGABA_E7 = 0.0
-		self.d_V_E8 = 0.0
-		self.d_sAMPA_E8 = 0.0
-		self.d_sAMPA_EXT_E8 = 0.0
-		self.d_xNMDA_E8 = 0.0
-		self.d_sNMDA_E8 = 0.0
-		self.d_sGABA_E8 = 0.0
-		self.d_V_E9 = 0.0
-		self.d_sAMPA_E9 = 0.0
-		self.d_sAMPA_EXT_E9 = 0.0
-		self.d_xNMDA_E9 = 0.0
-		self.d_sNMDA_E9 = 0.0
-		self.d_sGABA_E9 = 0.0
-		self.d_V_E10 = 0.0
-		self.d_sAMPA_E10 = 0.0
-		self.d_sAMPA_EXT_E10 = 0.0
-		self.d_xNMDA_E10 = 0.0
-		self.d_sNMDA_E10 = 0.0
-		self.d_sGABA_E10 = 0.0
-		self.d_V_E11 = 0.0
-		self.d_sAMPA_E11 = 0.0
-		self.d_sAMPA_EXT_E11 = 0.0
-		self.d_xNMDA_E11 = 0.0
-		self.d_sNMDA_E11 = 0.0
-		self.d_sGABA_E11 = 0.0
-		self.d_V_E12 = 0.0
-		self.d_sAMPA_E12 = 0.0
-		self.d_sAMPA_EXT_E12 = 0.0
-		self.d_xNMDA_E12 = 0.0
-		self.d_sNMDA_E12 = 0.0
-		self.d_sGABA_E12 = 0.0
-		self.d_V_E13 = 0.0
-		self.d_sAMPA_E13 = 0.0
-		self.d_sAMPA_EXT_E13 = 0.0
-		self.d_xNMDA_E13 = 0.0
-		self.d_sNMDA_E13 = 0.0
-		self.d_sGABA_E13 = 0.0
-		self.d_V_E14 = 0.0
-		self.d_sAMPA_E14 = 0.0
-		self.d_sAMPA_EXT_E14 = 0.0
-		self.d_xNMDA_E14 = 0.0
-		self.d_sNMDA_E14 = 0.0
-		self.d_sGABA_E14 = 0.0
-		self.d_V_E15 = 0.0
-		self.d_sAMPA_E15 = 0.0
-		self.d_sAMPA_EXT_E15 = 0.0
-		self.d_xNMDA_E15 = 0.0
-		self.d_sNMDA_E15 = 0.0
-		self.d_sGABA_E15 = 0.0
-		self.d_V_I0 = 0.0
-		self.d_sAMPA_I0 = 0.0
-		self.d_sAMPA_EXT_I0 = 0.0
-		self.d_xNMDA_I0 = 0.0
-		self.d_sNMDA_I0 = 0.0
-		self.d_sGABA_I0 = 0.0
-		self.d_V_I1 = 0.0
-		self.d_sAMPA_I1 = 0.0
-		self.d_sAMPA_EXT_I1 = 0.0
-		self.d_xNMDA_I1 = 0.0
-		self.d_sNMDA_I1 = 0.0
-		self.d_sGABA_I1 = 0.0
-		self.d_V_I2 = 0.0
-		self.d_sAMPA_I2 = 0.0
-		self.d_sAMPA_EXT_I2 = 0.0
-		self.d_xNMDA_I2 = 0.0
-		self.d_sNMDA_I2 = 0.0
-		self.d_sGABA_I2 = 0.0
-		self.d_V_I3 = 0.0
-		self.d_sAMPA_I3 = 0.0
-		self.d_sAMPA_EXT_I3 = 0.0
-		self.d_xNMDA_I3 = 0.0
-		self.d_sNMDA_I3 = 0.0
-		self.d_sGABA_I3 = 0.0
+		self.d_V = np.zeros(20)
+		# >>>>>>>>> for neuron E0
+		self.d_s_AMPA_E0 = np.zeros(16)
+		self.d_s_NMDA_E0 = np.zeros(16)
+		self.d_x_NMDA_E0 = np.zeros(16)
+		self.d_s_GABA_E0 = np.zeros(4)
+		self.d_s_AMPA_EXT_E0 = np.zeros(10)
+		# >>>>>>>>> for neuron E1
+		self.d_s_AMPA_E1 = np.zeros(16)
+		self.d_s_NMDA_E1 = np.zeros(16)
+		self.d_x_NMDA_E1 = np.zeros(16)
+		self.d_s_GABA_E1 = np.zeros(4)
+		self.d_s_AMPA_EXT_E1 = np.zeros(10)
+		# >>>>>>>>> for neuron E2
+		self.d_s_AMPA_E2 = np.zeros(16)
+		self.d_s_NMDA_E2 = np.zeros(16)
+		self.d_x_NMDA_E2 = np.zeros(16)
+		self.d_s_GABA_E2 = np.zeros(4)
+		self.d_s_AMPA_EXT_E2 = np.zeros(10)
+		# >>>>>>>>> for neuron E3
+		self.d_s_AMPA_E3 = np.zeros(16)
+		self.d_s_NMDA_E3 = np.zeros(16)
+		self.d_x_NMDA_E3 = np.zeros(16)
+		self.d_s_GABA_E3 = np.zeros(4)
+		self.d_s_AMPA_EXT_E3 = np.zeros(10)
+		# >>>>>>>>> for neuron E4
+		self.d_s_AMPA_E4 = np.zeros(16)
+		self.d_s_NMDA_E4 = np.zeros(16)
+		self.d_x_NMDA_E4 = np.zeros(16)
+		self.d_s_GABA_E4 = np.zeros(4)
+		self.d_s_AMPA_EXT_E4 = np.zeros(10)
+		# >>>>>>>>> for neuron E5
+		self.d_s_AMPA_E5 = np.zeros(16)
+		self.d_s_NMDA_E5 = np.zeros(16)
+		self.d_x_NMDA_E5 = np.zeros(16)
+		self.d_s_GABA_E5 = np.zeros(4)
+		self.d_s_AMPA_EXT_E5 = np.zeros(10)
+		# >>>>>>>>> for neuron E6
+		self.d_s_AMPA_E6 = np.zeros(16)
+		self.d_s_NMDA_E6 = np.zeros(16)
+		self.d_x_NMDA_E6 = np.zeros(16)
+		self.d_s_GABA_E6 = np.zeros(4)
+		self.d_s_AMPA_EXT_E6 = np.zeros(10)
+		# >>>>>>>>> for neuron E7
+		self.d_s_AMPA_E7 = np.zeros(16)
+		self.d_s_NMDA_E7 = np.zeros(16)
+		self.d_x_NMDA_E7 = np.zeros(16)
+		self.d_s_GABA_E7 = np.zeros(4)
+		self.d_s_AMPA_EXT_E7 = np.zeros(10)
+		# >>>>>>>>> for neuron E8
+		self.d_s_AMPA_E8 = np.zeros(16)
+		self.d_s_NMDA_E8 = np.zeros(16)
+		self.d_x_NMDA_E8 = np.zeros(16)
+		self.d_s_GABA_E8 = np.zeros(4)
+		self.d_s_AMPA_EXT_E8 = np.zeros(5)
+		# >>>>>>>>> for neuron E9
+		self.d_s_AMPA_E9 = np.zeros(16)
+		self.d_s_NMDA_E9 = np.zeros(16)
+		self.d_x_NMDA_E9 = np.zeros(16)
+		self.d_s_GABA_E9 = np.zeros(4)
+		self.d_s_AMPA_EXT_E9 = np.zeros(5)
+		# >>>>>>>>> for neuron E10
+		self.d_s_AMPA_E10 = np.zeros(16)
+		self.d_s_NMDA_E10 = np.zeros(16)
+		self.d_x_NMDA_E10 = np.zeros(16)
+		self.d_s_GABA_E10 = np.zeros(4)
+		self.d_s_AMPA_EXT_E10 = np.zeros(5)
+		# >>>>>>>>> for neuron E11
+		self.d_s_AMPA_E11 = np.zeros(16)
+		self.d_s_NMDA_E11 = np.zeros(16)
+		self.d_x_NMDA_E11 = np.zeros(16)
+		self.d_s_GABA_E11 = np.zeros(4)
+		self.d_s_AMPA_EXT_E11 = np.zeros(5)
+		# >>>>>>>>> for neuron E12
+		self.d_s_AMPA_E12 = np.zeros(16)
+		self.d_s_NMDA_E12 = np.zeros(16)
+		self.d_x_NMDA_E12 = np.zeros(16)
+		self.d_s_GABA_E12 = np.zeros(4)
+		self.d_s_AMPA_EXT_E12 = np.zeros(5)
+		# >>>>>>>>> for neuron E13
+		self.d_s_AMPA_E13 = np.zeros(16)
+		self.d_s_NMDA_E13 = np.zeros(16)
+		self.d_x_NMDA_E13 = np.zeros(16)
+		self.d_s_GABA_E13 = np.zeros(4)
+		self.d_s_AMPA_EXT_E13 = np.zeros(5)
+		# >>>>>>>>> for neuron E14
+		self.d_s_AMPA_E14 = np.zeros(16)
+		self.d_s_NMDA_E14 = np.zeros(16)
+		self.d_x_NMDA_E14 = np.zeros(16)
+		self.d_s_GABA_E14 = np.zeros(4)
+		self.d_s_AMPA_EXT_E14 = np.zeros(5)
+		# >>>>>>>>> for neuron E15
+		self.d_s_AMPA_E15 = np.zeros(16)
+		self.d_s_NMDA_E15 = np.zeros(16)
+		self.d_x_NMDA_E15 = np.zeros(16)
+		self.d_s_GABA_E15 = np.zeros(4)
+		self.d_s_AMPA_EXT_E15 = np.zeros(5)
+		# >>>>>>>>> for neuron I0
+		self.d_s_AMPA_I0 = np.zeros(16)
+		self.d_s_NMDA_I0 = np.zeros(16)
+		self.d_x_NMDA_I0 = np.zeros(16)
+		self.d_s_GABA_I0 = np.zeros(4)
+		self.d_s_AMPA_EXT_I0 = np.zeros(5)
+		# >>>>>>>>> for neuron I1
+		self.d_s_AMPA_I1 = np.zeros(16)
+		self.d_s_NMDA_I1 = np.zeros(16)
+		self.d_x_NMDA_I1 = np.zeros(16)
+		self.d_s_GABA_I1 = np.zeros(4)
+		self.d_s_AMPA_EXT_I1 = np.zeros(5)
+		# >>>>>>>>> for neuron I2
+		self.d_s_AMPA_I2 = np.zeros(16)
+		self.d_s_NMDA_I2 = np.zeros(16)
+		self.d_x_NMDA_I2 = np.zeros(16)
+		self.d_s_GABA_I2 = np.zeros(4)
+		self.d_s_AMPA_EXT_I2 = np.zeros(5)
+		# >>>>>>>>> for neuron I3
+		self.d_s_AMPA_I3 = np.zeros(16)
+		self.d_s_NMDA_I3 = np.zeros(16)
+		self.d_x_NMDA_I3 = np.zeros(16)
+		self.d_s_GABA_I3 = np.zeros(4)
+		self.d_s_AMPA_EXT_I3 = np.zeros(5)
 	#%% euler integration func
 	def integrate_all_euler(self):
-		self.V_E0 += self.d_V_E0*self.dt
-		self.sAMPA_E0 += self.d_sAMPA_E0*self.dt
-		self.sAMPA_EXT_E0 += self.d_sAMPA_EXT_E0*self.dt
-		self.xNMDA_E0 += self.d_xNMDA_E0*self.dt
-		self.sNMDA_E0 += self.d_sNMDA_E0*self.dt
-		self.sGABA_E0 += self.d_sGABA_E0*self.dt
-		self.V_E1 += self.d_V_E1*self.dt
-		self.sAMPA_E1 += self.d_sAMPA_E1*self.dt
-		self.sAMPA_EXT_E1 += self.d_sAMPA_EXT_E1*self.dt
-		self.xNMDA_E1 += self.d_xNMDA_E1*self.dt
-		self.sNMDA_E1 += self.d_sNMDA_E1*self.dt
-		self.sGABA_E1 += self.d_sGABA_E1*self.dt
-		self.V_E2 += self.d_V_E2*self.dt
-		self.sAMPA_E2 += self.d_sAMPA_E2*self.dt
-		self.sAMPA_EXT_E2 += self.d_sAMPA_EXT_E2*self.dt
-		self.xNMDA_E2 += self.d_xNMDA_E2*self.dt
-		self.sNMDA_E2 += self.d_sNMDA_E2*self.dt
-		self.sGABA_E2 += self.d_sGABA_E2*self.dt
-		self.V_E3 += self.d_V_E3*self.dt
-		self.sAMPA_E3 += self.d_sAMPA_E3*self.dt
-		self.sAMPA_EXT_E3 += self.d_sAMPA_EXT_E3*self.dt
-		self.xNMDA_E3 += self.d_xNMDA_E3*self.dt
-		self.sNMDA_E3 += self.d_sNMDA_E3*self.dt
-		self.sGABA_E3 += self.d_sGABA_E3*self.dt
-		self.V_E4 += self.d_V_E4*self.dt
-		self.sAMPA_E4 += self.d_sAMPA_E4*self.dt
-		self.sAMPA_EXT_E4 += self.d_sAMPA_EXT_E4*self.dt
-		self.xNMDA_E4 += self.d_xNMDA_E4*self.dt
-		self.sNMDA_E4 += self.d_sNMDA_E4*self.dt
-		self.sGABA_E4 += self.d_sGABA_E4*self.dt
-		self.V_E5 += self.d_V_E5*self.dt
-		self.sAMPA_E5 += self.d_sAMPA_E5*self.dt
-		self.sAMPA_EXT_E5 += self.d_sAMPA_EXT_E5*self.dt
-		self.xNMDA_E5 += self.d_xNMDA_E5*self.dt
-		self.sNMDA_E5 += self.d_sNMDA_E5*self.dt
-		self.sGABA_E5 += self.d_sGABA_E5*self.dt
-		self.V_E6 += self.d_V_E6*self.dt
-		self.sAMPA_E6 += self.d_sAMPA_E6*self.dt
-		self.sAMPA_EXT_E6 += self.d_sAMPA_EXT_E6*self.dt
-		self.xNMDA_E6 += self.d_xNMDA_E6*self.dt
-		self.sNMDA_E6 += self.d_sNMDA_E6*self.dt
-		self.sGABA_E6 += self.d_sGABA_E6*self.dt
-		self.V_E7 += self.d_V_E7*self.dt
-		self.sAMPA_E7 += self.d_sAMPA_E7*self.dt
-		self.sAMPA_EXT_E7 += self.d_sAMPA_EXT_E7*self.dt
-		self.xNMDA_E7 += self.d_xNMDA_E7*self.dt
-		self.sNMDA_E7 += self.d_sNMDA_E7*self.dt
-		self.sGABA_E7 += self.d_sGABA_E7*self.dt
-		self.V_E8 += self.d_V_E8*self.dt
-		self.sAMPA_E8 += self.d_sAMPA_E8*self.dt
-		self.sAMPA_EXT_E8 += self.d_sAMPA_EXT_E8*self.dt
-		self.xNMDA_E8 += self.d_xNMDA_E8*self.dt
-		self.sNMDA_E8 += self.d_sNMDA_E8*self.dt
-		self.sGABA_E8 += self.d_sGABA_E8*self.dt
-		self.V_E9 += self.d_V_E9*self.dt
-		self.sAMPA_E9 += self.d_sAMPA_E9*self.dt
-		self.sAMPA_EXT_E9 += self.d_sAMPA_EXT_E9*self.dt
-		self.xNMDA_E9 += self.d_xNMDA_E9*self.dt
-		self.sNMDA_E9 += self.d_sNMDA_E9*self.dt
-		self.sGABA_E9 += self.d_sGABA_E9*self.dt
-		self.V_E10 += self.d_V_E10*self.dt
-		self.sAMPA_E10 += self.d_sAMPA_E10*self.dt
-		self.sAMPA_EXT_E10 += self.d_sAMPA_EXT_E10*self.dt
-		self.xNMDA_E10 += self.d_xNMDA_E10*self.dt
-		self.sNMDA_E10 += self.d_sNMDA_E10*self.dt
-		self.sGABA_E10 += self.d_sGABA_E10*self.dt
-		self.V_E11 += self.d_V_E11*self.dt
-		self.sAMPA_E11 += self.d_sAMPA_E11*self.dt
-		self.sAMPA_EXT_E11 += self.d_sAMPA_EXT_E11*self.dt
-		self.xNMDA_E11 += self.d_xNMDA_E11*self.dt
-		self.sNMDA_E11 += self.d_sNMDA_E11*self.dt
-		self.sGABA_E11 += self.d_sGABA_E11*self.dt
-		self.V_E12 += self.d_V_E12*self.dt
-		self.sAMPA_E12 += self.d_sAMPA_E12*self.dt
-		self.sAMPA_EXT_E12 += self.d_sAMPA_EXT_E12*self.dt
-		self.xNMDA_E12 += self.d_xNMDA_E12*self.dt
-		self.sNMDA_E12 += self.d_sNMDA_E12*self.dt
-		self.sGABA_E12 += self.d_sGABA_E12*self.dt
-		self.V_E13 += self.d_V_E13*self.dt
-		self.sAMPA_E13 += self.d_sAMPA_E13*self.dt
-		self.sAMPA_EXT_E13 += self.d_sAMPA_EXT_E13*self.dt
-		self.xNMDA_E13 += self.d_xNMDA_E13*self.dt
-		self.sNMDA_E13 += self.d_sNMDA_E13*self.dt
-		self.sGABA_E13 += self.d_sGABA_E13*self.dt
-		self.V_E14 += self.d_V_E14*self.dt
-		self.sAMPA_E14 += self.d_sAMPA_E14*self.dt
-		self.sAMPA_EXT_E14 += self.d_sAMPA_EXT_E14*self.dt
-		self.xNMDA_E14 += self.d_xNMDA_E14*self.dt
-		self.sNMDA_E14 += self.d_sNMDA_E14*self.dt
-		self.sGABA_E14 += self.d_sGABA_E14*self.dt
-		self.V_E15 += self.d_V_E15*self.dt
-		self.sAMPA_E15 += self.d_sAMPA_E15*self.dt
-		self.sAMPA_EXT_E15 += self.d_sAMPA_EXT_E15*self.dt
-		self.xNMDA_E15 += self.d_xNMDA_E15*self.dt
-		self.sNMDA_E15 += self.d_sNMDA_E15*self.dt
-		self.sGABA_E15 += self.d_sGABA_E15*self.dt
-		self.V_I0 += self.d_V_I0*self.dt
-		self.sAMPA_I0 += self.d_sAMPA_I0*self.dt
-		self.sAMPA_EXT_I0 += self.d_sAMPA_EXT_I0*self.dt
-		self.xNMDA_I0 += self.d_xNMDA_I0*self.dt
-		self.sNMDA_I0 += self.d_sNMDA_I0*self.dt
-		self.sGABA_I0 += self.d_sGABA_I0*self.dt
-		self.V_I1 += self.d_V_I1*self.dt
-		self.sAMPA_I1 += self.d_sAMPA_I1*self.dt
-		self.sAMPA_EXT_I1 += self.d_sAMPA_EXT_I1*self.dt
-		self.xNMDA_I1 += self.d_xNMDA_I1*self.dt
-		self.sNMDA_I1 += self.d_sNMDA_I1*self.dt
-		self.sGABA_I1 += self.d_sGABA_I1*self.dt
-		self.V_I2 += self.d_V_I2*self.dt
-		self.sAMPA_I2 += self.d_sAMPA_I2*self.dt
-		self.sAMPA_EXT_I2 += self.d_sAMPA_EXT_I2*self.dt
-		self.xNMDA_I2 += self.d_xNMDA_I2*self.dt
-		self.sNMDA_I2 += self.d_sNMDA_I2*self.dt
-		self.sGABA_I2 += self.d_sGABA_I2*self.dt
-		self.V_I3 += self.d_V_I3*self.dt
-		self.sAMPA_I3 += self.d_sAMPA_I3*self.dt
-		self.sAMPA_EXT_I3 += self.d_sAMPA_EXT_I3*self.dt
-		self.xNMDA_I3 += self.d_xNMDA_I3*self.dt
-		self.sNMDA_I3 += self.d_sNMDA_I3*self.dt
-		self.sGABA_I3 += self.d_sGABA_I3*self.dt
+		self.V += self.d_V*self.dt
+		# >>>>>>>>> for neuron E0
+		self.s_AMPA_E0 += self.d_s_AMPA_E0*self.dt
+		self.s_NMDA_E0 += self.d_s_NMDA_E0*self.dt
+		self.x_NMDA_E0 += self.d_x_NMDA_E0*self.dt
+		self.s_GABA_E0 += self.d_s_GABA_E0*self.dt
+		self.s_AMPA_EXT_E0 += self.d_s_AMPA_EXT_E0*self.dt
+		# >>>>>>>>> for neuron E1
+		self.s_AMPA_E1 += self.d_s_AMPA_E1*self.dt
+		self.s_NMDA_E1 += self.d_s_NMDA_E1*self.dt
+		self.x_NMDA_E1 += self.d_x_NMDA_E1*self.dt
+		self.s_GABA_E1 += self.d_s_GABA_E1*self.dt
+		self.s_AMPA_EXT_E1 += self.d_s_AMPA_EXT_E1*self.dt
+		# >>>>>>>>> for neuron E2
+		self.s_AMPA_E2 += self.d_s_AMPA_E2*self.dt
+		self.s_NMDA_E2 += self.d_s_NMDA_E2*self.dt
+		self.x_NMDA_E2 += self.d_x_NMDA_E2*self.dt
+		self.s_GABA_E2 += self.d_s_GABA_E2*self.dt
+		self.s_AMPA_EXT_E2 += self.d_s_AMPA_EXT_E2*self.dt
+		# >>>>>>>>> for neuron E3
+		self.s_AMPA_E3 += self.d_s_AMPA_E3*self.dt
+		self.s_NMDA_E3 += self.d_s_NMDA_E3*self.dt
+		self.x_NMDA_E3 += self.d_x_NMDA_E3*self.dt
+		self.s_GABA_E3 += self.d_s_GABA_E3*self.dt
+		self.s_AMPA_EXT_E3 += self.d_s_AMPA_EXT_E3*self.dt
+		# >>>>>>>>> for neuron E4
+		self.s_AMPA_E4 += self.d_s_AMPA_E4*self.dt
+		self.s_NMDA_E4 += self.d_s_NMDA_E4*self.dt
+		self.x_NMDA_E4 += self.d_x_NMDA_E4*self.dt
+		self.s_GABA_E4 += self.d_s_GABA_E4*self.dt
+		self.s_AMPA_EXT_E4 += self.d_s_AMPA_EXT_E4*self.dt
+		# >>>>>>>>> for neuron E5
+		self.s_AMPA_E5 += self.d_s_AMPA_E5*self.dt
+		self.s_NMDA_E5 += self.d_s_NMDA_E5*self.dt
+		self.x_NMDA_E5 += self.d_x_NMDA_E5*self.dt
+		self.s_GABA_E5 += self.d_s_GABA_E5*self.dt
+		self.s_AMPA_EXT_E5 += self.d_s_AMPA_EXT_E5*self.dt
+		# >>>>>>>>> for neuron E6
+		self.s_AMPA_E6 += self.d_s_AMPA_E6*self.dt
+		self.s_NMDA_E6 += self.d_s_NMDA_E6*self.dt
+		self.x_NMDA_E6 += self.d_x_NMDA_E6*self.dt
+		self.s_GABA_E6 += self.d_s_GABA_E6*self.dt
+		self.s_AMPA_EXT_E6 += self.d_s_AMPA_EXT_E6*self.dt
+		# >>>>>>>>> for neuron E7
+		self.s_AMPA_E7 += self.d_s_AMPA_E7*self.dt
+		self.s_NMDA_E7 += self.d_s_NMDA_E7*self.dt
+		self.x_NMDA_E7 += self.d_x_NMDA_E7*self.dt
+		self.s_GABA_E7 += self.d_s_GABA_E7*self.dt
+		self.s_AMPA_EXT_E7 += self.d_s_AMPA_EXT_E7*self.dt
+		# >>>>>>>>> for neuron E8
+		self.s_AMPA_E8 += self.d_s_AMPA_E8*self.dt
+		self.s_NMDA_E8 += self.d_s_NMDA_E8*self.dt
+		self.x_NMDA_E8 += self.d_x_NMDA_E8*self.dt
+		self.s_GABA_E8 += self.d_s_GABA_E8*self.dt
+		self.s_AMPA_EXT_E8 += self.d_s_AMPA_EXT_E8*self.dt
+		# >>>>>>>>> for neuron E9
+		self.s_AMPA_E9 += self.d_s_AMPA_E9*self.dt
+		self.s_NMDA_E9 += self.d_s_NMDA_E9*self.dt
+		self.x_NMDA_E9 += self.d_x_NMDA_E9*self.dt
+		self.s_GABA_E9 += self.d_s_GABA_E9*self.dt
+		self.s_AMPA_EXT_E9 += self.d_s_AMPA_EXT_E9*self.dt
+		# >>>>>>>>> for neuron E10
+		self.s_AMPA_E10 += self.d_s_AMPA_E10*self.dt
+		self.s_NMDA_E10 += self.d_s_NMDA_E10*self.dt
+		self.x_NMDA_E10 += self.d_x_NMDA_E10*self.dt
+		self.s_GABA_E10 += self.d_s_GABA_E10*self.dt
+		self.s_AMPA_EXT_E10 += self.d_s_AMPA_EXT_E10*self.dt
+		# >>>>>>>>> for neuron E11
+		self.s_AMPA_E11 += self.d_s_AMPA_E11*self.dt
+		self.s_NMDA_E11 += self.d_s_NMDA_E11*self.dt
+		self.x_NMDA_E11 += self.d_x_NMDA_E11*self.dt
+		self.s_GABA_E11 += self.d_s_GABA_E11*self.dt
+		self.s_AMPA_EXT_E11 += self.d_s_AMPA_EXT_E11*self.dt
+		# >>>>>>>>> for neuron E12
+		self.s_AMPA_E12 += self.d_s_AMPA_E12*self.dt
+		self.s_NMDA_E12 += self.d_s_NMDA_E12*self.dt
+		self.x_NMDA_E12 += self.d_x_NMDA_E12*self.dt
+		self.s_GABA_E12 += self.d_s_GABA_E12*self.dt
+		self.s_AMPA_EXT_E12 += self.d_s_AMPA_EXT_E12*self.dt
+		# >>>>>>>>> for neuron E13
+		self.s_AMPA_E13 += self.d_s_AMPA_E13*self.dt
+		self.s_NMDA_E13 += self.d_s_NMDA_E13*self.dt
+		self.x_NMDA_E13 += self.d_x_NMDA_E13*self.dt
+		self.s_GABA_E13 += self.d_s_GABA_E13*self.dt
+		self.s_AMPA_EXT_E13 += self.d_s_AMPA_EXT_E13*self.dt
+		# >>>>>>>>> for neuron E14
+		self.s_AMPA_E14 += self.d_s_AMPA_E14*self.dt
+		self.s_NMDA_E14 += self.d_s_NMDA_E14*self.dt
+		self.x_NMDA_E14 += self.d_x_NMDA_E14*self.dt
+		self.s_GABA_E14 += self.d_s_GABA_E14*self.dt
+		self.s_AMPA_EXT_E14 += self.d_s_AMPA_EXT_E14*self.dt
+		# >>>>>>>>> for neuron E15
+		self.s_AMPA_E15 += self.d_s_AMPA_E15*self.dt
+		self.s_NMDA_E15 += self.d_s_NMDA_E15*self.dt
+		self.x_NMDA_E15 += self.d_x_NMDA_E15*self.dt
+		self.s_GABA_E15 += self.d_s_GABA_E15*self.dt
+		self.s_AMPA_EXT_E15 += self.d_s_AMPA_EXT_E15*self.dt
+		# >>>>>>>>> for neuron I0
+		self.s_AMPA_I0 += self.d_s_AMPA_I0*self.dt
+		self.s_NMDA_I0 += self.d_s_NMDA_I0*self.dt
+		self.x_NMDA_I0 += self.d_x_NMDA_I0*self.dt
+		self.s_GABA_I0 += self.d_s_GABA_I0*self.dt
+		self.s_AMPA_EXT_I0 += self.d_s_AMPA_EXT_I0*self.dt
+		# >>>>>>>>> for neuron I1
+		self.s_AMPA_I1 += self.d_s_AMPA_I1*self.dt
+		self.s_NMDA_I1 += self.d_s_NMDA_I1*self.dt
+		self.x_NMDA_I1 += self.d_x_NMDA_I1*self.dt
+		self.s_GABA_I1 += self.d_s_GABA_I1*self.dt
+		self.s_AMPA_EXT_I1 += self.d_s_AMPA_EXT_I1*self.dt
+		# >>>>>>>>> for neuron I2
+		self.s_AMPA_I2 += self.d_s_AMPA_I2*self.dt
+		self.s_NMDA_I2 += self.d_s_NMDA_I2*self.dt
+		self.x_NMDA_I2 += self.d_x_NMDA_I2*self.dt
+		self.s_GABA_I2 += self.d_s_GABA_I2*self.dt
+		self.s_AMPA_EXT_I2 += self.d_s_AMPA_EXT_I2*self.dt
+		# >>>>>>>>> for neuron I3
+		self.s_AMPA_I3 += self.d_s_AMPA_I3*self.dt
+		self.s_NMDA_I3 += self.d_s_NMDA_I3*self.dt
+		self.x_NMDA_I3 += self.d_x_NMDA_I3*self.dt
+		self.s_GABA_I3 += self.d_s_GABA_I3*self.dt
+		self.s_AMPA_EXT_I3 += self.d_s_AMPA_EXT_I3*self.dt
 	#%% derivative func
-	def calculate_dxdt_all(self, stimuli):
+	def calculate_dxdt_all(self):
 		self.dx_reset()
 		##% memb pot derivatives
-		self.d_V_E0 = (-2.5e-08*(self.V_E0 - -0.07) - self.Isyn_E0) / 5e-10
-		self.d_V_E1 = (-2.5e-08*(self.V_E1 - -0.07) - self.Isyn_E1) / 5e-10
-		self.d_V_E2 = (-2.5e-08*(self.V_E2 - -0.07) - self.Isyn_E2) / 5e-10
-		self.d_V_E3 = (-2.5e-08*(self.V_E3 - -0.07) - self.Isyn_E3) / 5e-10
-		self.d_V_E4 = (-2.5e-08*(self.V_E4 - -0.07) - self.Isyn_E4) / 5e-10
-		self.d_V_E5 = (-2.5e-08*(self.V_E5 - -0.07) - self.Isyn_E5) / 5e-10
-		self.d_V_E6 = (-2.5e-08*(self.V_E6 - -0.07) - self.Isyn_E6) / 5e-10
-		self.d_V_E7 = (-2.5e-08*(self.V_E7 - -0.07) - self.Isyn_E7) / 5e-10
-		self.d_V_E8 = (-2.5e-08*(self.V_E8 - -0.07) - self.Isyn_E8) / 5e-10
-		self.d_V_E9 = (-2.5e-08*(self.V_E9 - -0.07) - self.Isyn_E9) / 5e-10
-		self.d_V_E10 = (-2.5e-08*(self.V_E10 - -0.07) - self.Isyn_E10) / 5e-10
-		self.d_V_E11 = (-2.5e-08*(self.V_E11 - -0.07) - self.Isyn_E11) / 5e-10
-		self.d_V_E12 = (-2.5e-08*(self.V_E12 - -0.07) - self.Isyn_E12) / 5e-10
-		self.d_V_E13 = (-2.5e-08*(self.V_E13 - -0.07) - self.Isyn_E13) / 5e-10
-		self.d_V_E14 = (-2.5e-08*(self.V_E14 - -0.07) - self.Isyn_E14) / 5e-10
-		self.d_V_E15 = (-2.5e-08*(self.V_E15 - -0.07) - self.Isyn_E15) / 5e-10
-		self.d_V_I0 = (-2e-08*(self.V_I0 - -0.07) - self.Isyn_I0) / 2e-10
-		self.d_V_I1 = (-2e-08*(self.V_I1 - -0.07) - self.Isyn_I1) / 2e-10
-		self.d_V_I2 = (-2e-08*(self.V_I2 - -0.07) - self.Isyn_I2) / 2e-10
-		self.d_V_I3 = (-2e-08*(self.V_I3 - -0.07) - self.Isyn_I3) / 2e-10
+		self.d_V = (-self.neuron_GLs*(self.V - self.neuron_VLs) - self.I_syn) / self.neuron_CMs
 		##% channel derivatives
-		#%%  s_AMPA (recurrent) derivatives for synapse group 
-		self.d_sAMPA_E0 += (-self.sAMPA_E0 / 0.002) + stimuli['E'][0]
-		self.d_sAMPA_E1 += (-self.sAMPA_E1 / 0.002) + stimuli['E'][1]
-		self.d_sAMPA_E2 += (-self.sAMPA_E2 / 0.002) + stimuli['E'][2]
-		self.d_sAMPA_E3 += (-self.sAMPA_E3 / 0.002) + stimuli['E'][3]
-		self.d_sAMPA_E4 += (-self.sAMPA_E4 / 0.002) + stimuli['E'][4]
-		self.d_sAMPA_E5 += (-self.sAMPA_E5 / 0.002) + stimuli['E'][5]
-		self.d_sAMPA_E6 += (-self.sAMPA_E6 / 0.002) + stimuli['E'][6]
-		self.d_sAMPA_E7 += (-self.sAMPA_E7 / 0.002) + stimuli['E'][7]
-		self.d_sAMPA_E8 += (-self.sAMPA_E8 / 0.002) + stimuli['E'][8]
-		self.d_sAMPA_E9 += (-self.sAMPA_E9 / 0.002) + stimuli['E'][9]
-		self.d_sAMPA_E10 += (-self.sAMPA_E10 / 0.002) + stimuli['E'][10]
-		self.d_sAMPA_E11 += (-self.sAMPA_E11 / 0.002) + stimuli['E'][11]
-		self.d_sAMPA_E12 += (-self.sAMPA_E12 / 0.002) + stimuli['E'][12]
-		self.d_sAMPA_E13 += (-self.sAMPA_E13 / 0.002) + stimuli['E'][13]
-		self.d_sAMPA_E14 += (-self.sAMPA_E14 / 0.002) + stimuli['E'][14]
-		self.d_sAMPA_E15 += (-self.sAMPA_E15 / 0.002) + stimuli['E'][15]
-		#%%  NMDA (recurrent) derivatives for synapse group 
-		self.d_xNMDA_E0 += (-self.xNMDA_E0 / 0.002) + stimuli['E'][0]
-		self.d_sNMDA_E0 += (-self.sNMDA_E0 / 0.1) + 500.0*self.xNMDA_E0*(1 - self.sNMDA_E0) 
-		self.d_xNMDA_E1 += (-self.xNMDA_E1 / 0.002) + stimuli['E'][1]
-		self.d_sNMDA_E1 += (-self.sNMDA_E1 / 0.1) + 500.0*self.xNMDA_E1*(1 - self.sNMDA_E1) 
-		self.d_xNMDA_E2 += (-self.xNMDA_E2 / 0.002) + stimuli['E'][2]
-		self.d_sNMDA_E2 += (-self.sNMDA_E2 / 0.1) + 500.0*self.xNMDA_E2*(1 - self.sNMDA_E2) 
-		self.d_xNMDA_E3 += (-self.xNMDA_E3 / 0.002) + stimuli['E'][3]
-		self.d_sNMDA_E3 += (-self.sNMDA_E3 / 0.1) + 500.0*self.xNMDA_E3*(1 - self.sNMDA_E3) 
-		self.d_xNMDA_E4 += (-self.xNMDA_E4 / 0.002) + stimuli['E'][4]
-		self.d_sNMDA_E4 += (-self.sNMDA_E4 / 0.1) + 500.0*self.xNMDA_E4*(1 - self.sNMDA_E4) 
-		self.d_xNMDA_E5 += (-self.xNMDA_E5 / 0.002) + stimuli['E'][5]
-		self.d_sNMDA_E5 += (-self.sNMDA_E5 / 0.1) + 500.0*self.xNMDA_E5*(1 - self.sNMDA_E5) 
-		self.d_xNMDA_E6 += (-self.xNMDA_E6 / 0.002) + stimuli['E'][6]
-		self.d_sNMDA_E6 += (-self.sNMDA_E6 / 0.1) + 500.0*self.xNMDA_E6*(1 - self.sNMDA_E6) 
-		self.d_xNMDA_E7 += (-self.xNMDA_E7 / 0.002) + stimuli['E'][7]
-		self.d_sNMDA_E7 += (-self.sNMDA_E7 / 0.1) + 500.0*self.xNMDA_E7*(1 - self.sNMDA_E7) 
-		self.d_xNMDA_E8 += (-self.xNMDA_E8 / 0.002) + stimuli['E'][8]
-		self.d_sNMDA_E8 += (-self.sNMDA_E8 / 0.1) + 500.0*self.xNMDA_E8*(1 - self.sNMDA_E8) 
-		self.d_xNMDA_E9 += (-self.xNMDA_E9 / 0.002) + stimuli['E'][9]
-		self.d_sNMDA_E9 += (-self.sNMDA_E9 / 0.1) + 500.0*self.xNMDA_E9*(1 - self.sNMDA_E9) 
-		self.d_xNMDA_E10 += (-self.xNMDA_E10 / 0.002) + stimuli['E'][10]
-		self.d_sNMDA_E10 += (-self.sNMDA_E10 / 0.1) + 500.0*self.xNMDA_E10*(1 - self.sNMDA_E10) 
-		self.d_xNMDA_E11 += (-self.xNMDA_E11 / 0.002) + stimuli['E'][11]
-		self.d_sNMDA_E11 += (-self.sNMDA_E11 / 0.1) + 500.0*self.xNMDA_E11*(1 - self.sNMDA_E11) 
-		self.d_xNMDA_E12 += (-self.xNMDA_E12 / 0.002) + stimuli['E'][12]
-		self.d_sNMDA_E12 += (-self.sNMDA_E12 / 0.1) + 500.0*self.xNMDA_E12*(1 - self.sNMDA_E12) 
-		self.d_xNMDA_E13 += (-self.xNMDA_E13 / 0.002) + stimuli['E'][13]
-		self.d_sNMDA_E13 += (-self.sNMDA_E13 / 0.1) + 500.0*self.xNMDA_E13*(1 - self.sNMDA_E13) 
-		self.d_xNMDA_E14 += (-self.xNMDA_E14 / 0.002) + stimuli['E'][14]
-		self.d_sNMDA_E14 += (-self.sNMDA_E14 / 0.1) + 500.0*self.xNMDA_E14*(1 - self.sNMDA_E14) 
-		self.d_xNMDA_E15 += (-self.xNMDA_E15 / 0.002) + stimuli['E'][15]
-		self.d_sNMDA_E15 += (-self.sNMDA_E15 / 0.1) + 500.0*self.xNMDA_E15*(1 - self.sNMDA_E15) 
-		#%%  s_AMPA (recurrent) derivatives for synapse group 
-		self.d_sAMPA_I0 += (-self.sAMPA_I0 / 0.002) + stimuli['E'][0]
-		self.d_sAMPA_I1 += (-self.sAMPA_I1 / 0.002) + stimuli['E'][1]
-		self.d_sAMPA_I2 += (-self.sAMPA_I2 / 0.002) + stimuli['E'][2]
-		self.d_sAMPA_I3 += (-self.sAMPA_I3 / 0.002) + stimuli['E'][3]
-		#%%  NMDA (recurrent) derivatives for synapse group 
-		self.d_xNMDA_I0 += (-self.xNMDA_I0 / 0.002) + stimuli['E'][0]
-		self.d_sNMDA_I0 += (-self.sNMDA_I0 / 0.1) + 500.0*self.xNMDA_I0*(1 - self.sNMDA_I0) 
-		self.d_xNMDA_I1 += (-self.xNMDA_I1 / 0.002) + stimuli['E'][1]
-		self.d_sNMDA_I1 += (-self.sNMDA_I1 / 0.1) + 500.0*self.xNMDA_I1*(1 - self.sNMDA_I1) 
-		self.d_xNMDA_I2 += (-self.xNMDA_I2 / 0.002) + stimuli['E'][2]
-		self.d_sNMDA_I2 += (-self.sNMDA_I2 / 0.1) + 500.0*self.xNMDA_I2*(1 - self.sNMDA_I2) 
-		self.d_xNMDA_I3 += (-self.xNMDA_I3 / 0.002) + stimuli['E'][3]
-		self.d_sNMDA_I3 += (-self.sNMDA_I3 / 0.1) + 500.0*self.xNMDA_I3*(1 - self.sNMDA_I3) 
-		#%%  s_AMPA (recurrent) derivatives for synapse group 
-		self.d_sGABA_E0 += (-self.sGABA_E0 / 0.005) + stimuli['I'][0]
-		self.d_sGABA_E1 += (-self.sGABA_E1 / 0.005) + stimuli['I'][1]
-		self.d_sGABA_E2 += (-self.sGABA_E2 / 0.005) + stimuli['I'][2]
-		self.d_sGABA_E3 += (-self.sGABA_E3 / 0.005) + stimuli['I'][3]
-		self.d_sGABA_E4 += (-self.sGABA_E4 / 0.005) + stimuli['I'][4]
-		self.d_sGABA_E5 += (-self.sGABA_E5 / 0.005) + stimuli['I'][5]
-		self.d_sGABA_E6 += (-self.sGABA_E6 / 0.005) + stimuli['I'][6]
-		self.d_sGABA_E7 += (-self.sGABA_E7 / 0.005) + stimuli['I'][7]
-		self.d_sGABA_E8 += (-self.sGABA_E8 / 0.005) + stimuli['I'][8]
-		self.d_sGABA_E9 += (-self.sGABA_E9 / 0.005) + stimuli['I'][9]
-		self.d_sGABA_E10 += (-self.sGABA_E10 / 0.005) + stimuli['I'][10]
-		self.d_sGABA_E11 += (-self.sGABA_E11 / 0.005) + stimuli['I'][11]
-		self.d_sGABA_E12 += (-self.sGABA_E12 / 0.005) + stimuli['I'][12]
-		self.d_sGABA_E13 += (-self.sGABA_E13 / 0.005) + stimuli['I'][13]
-		self.d_sGABA_E14 += (-self.sGABA_E14 / 0.005) + stimuli['I'][14]
-		self.d_sGABA_E15 += (-self.sGABA_E15 / 0.005) + stimuli['I'][15]
-		#%%  s_AMPA (recurrent) derivatives for synapse group 
-		self.d_sGABA_I0 += (-self.sGABA_I0 / 0.005) + stimuli['I'][0]
-		self.d_sGABA_I1 += (-self.sGABA_I1 / 0.005) + stimuli['I'][1]
-		self.d_sGABA_I2 += (-self.sGABA_I2 / 0.005) + stimuli['I'][2]
-		self.d_sGABA_I3 += (-self.sGABA_I3 / 0.005) + stimuli['I'][3]
-		#%%  s_AMPA_EXT derivatives for synapse group 
-		self.d_sAMPA_EXT_E0 += (-self.sAMPA_EXT_E0 / 0.002) + stimuli['noiseE'][0]
-		self.d_sAMPA_EXT_E1 += (-self.sAMPA_EXT_E1 / 0.002) + stimuli['noiseE'][1]
-		self.d_sAMPA_EXT_E2 += (-self.sAMPA_EXT_E2 / 0.002) + stimuli['noiseE'][2]
-		self.d_sAMPA_EXT_E3 += (-self.sAMPA_EXT_E3 / 0.002) + stimuli['noiseE'][3]
-		self.d_sAMPA_EXT_E4 += (-self.sAMPA_EXT_E4 / 0.002) + stimuli['noiseE'][4]
-		self.d_sAMPA_EXT_E5 += (-self.sAMPA_EXT_E5 / 0.002) + stimuli['noiseE'][5]
-		self.d_sAMPA_EXT_E6 += (-self.sAMPA_EXT_E6 / 0.002) + stimuli['noiseE'][6]
-		self.d_sAMPA_EXT_E7 += (-self.sAMPA_EXT_E7 / 0.002) + stimuli['noiseE'][7]
-		self.d_sAMPA_EXT_E8 += (-self.sAMPA_EXT_E8 / 0.002) + stimuli['noiseE'][8]
-		self.d_sAMPA_EXT_E9 += (-self.sAMPA_EXT_E9 / 0.002) + stimuli['noiseE'][9]
-		self.d_sAMPA_EXT_E10 += (-self.sAMPA_EXT_E10 / 0.002) + stimuli['noiseE'][10]
-		self.d_sAMPA_EXT_E11 += (-self.sAMPA_EXT_E11 / 0.002) + stimuli['noiseE'][11]
-		self.d_sAMPA_EXT_E12 += (-self.sAMPA_EXT_E12 / 0.002) + stimuli['noiseE'][12]
-		self.d_sAMPA_EXT_E13 += (-self.sAMPA_EXT_E13 / 0.002) + stimuli['noiseE'][13]
-		self.d_sAMPA_EXT_E14 += (-self.sAMPA_EXT_E14 / 0.002) + stimuli['noiseE'][14]
-		self.d_sAMPA_EXT_E15 += (-self.sAMPA_EXT_E15 / 0.002) + stimuli['noiseE'][15]
-		#%%  s_AMPA_EXT derivatives for synapse group 
-		self.d_sAMPA_EXT_I0 += (-self.sAMPA_EXT_I0 / 0.002) + stimuli['noiseI'][0]
-		self.d_sAMPA_EXT_I1 += (-self.sAMPA_EXT_I1 / 0.002) + stimuli['noiseI'][1]
-		self.d_sAMPA_EXT_I2 += (-self.sAMPA_EXT_I2 / 0.002) + stimuli['noiseI'][2]
-		self.d_sAMPA_EXT_I3 += (-self.sAMPA_EXT_I3 / 0.002) + stimuli['noiseI'][3]
-		#%%  s_AMPA (external) derivatives for synapse group 
-		self.d_sAMPA_EXT_E0 += (-self.sAMPA_EXT_E0 / 0.002) + stimuli['stimA'][0]
-		self.d_sAMPA_EXT_E1 += (-self.sAMPA_EXT_E1 / 0.002) + stimuli['stimA'][1]
-		self.d_sAMPA_EXT_E2 += (-self.sAMPA_EXT_E2 / 0.002) + stimuli['stimA'][2]
-		self.d_sAMPA_EXT_E3 += (-self.sAMPA_EXT_E3 / 0.002) + stimuli['stimA'][3]
-		#%%  s_AMPA (external) derivatives for synapse group 
-		self.d_sAMPA_EXT_E4 += (-self.sAMPA_EXT_E4 / 0.002) + stimuli['stimB'][0]
-		self.d_sAMPA_EXT_E5 += (-self.sAMPA_EXT_E5 / 0.002) + stimuli['stimB'][1]
-		self.d_sAMPA_EXT_E6 += (-self.sAMPA_EXT_E6 / 0.002) + stimuli['stimB'][2]
-		self.d_sAMPA_EXT_E7 += (-self.sAMPA_EXT_E7 / 0.002) + stimuli['stimB'][3]
+		# E ---AMPA---> E
+		self.d_s_AMPA_E0 += (-self.s_AMPA_E0 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E1 += (-self.s_AMPA_E1 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E2 += (-self.s_AMPA_E2 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E3 += (-self.s_AMPA_E3 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E4 += (-self.s_AMPA_E4 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E5 += (-self.s_AMPA_E5 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E6 += (-self.s_AMPA_E6 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E7 += (-self.s_AMPA_E7 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E8 += (-self.s_AMPA_E8 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E9 += (-self.s_AMPA_E9 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E10 += (-self.s_AMPA_E10 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E11 += (-self.s_AMPA_E11 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E12 += (-self.s_AMPA_E12 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E13 += (-self.s_AMPA_E13 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E14 += (-self.s_AMPA_E14 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_E15 += (-self.s_AMPA_E15 / 0.002) + self.current_stimuli['E'] 
+		# E ---NMDA---> E
+		self.d_x_NMDA_E0 += (-self.x_NMDA_E0 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E0 += (-self.s_NMDA_E0 / 0.1) + 500.0*self.x_NMDA_E0*(1 - self.s_NMDA_E0) 
+		self.d_x_NMDA_E1 += (-self.x_NMDA_E1 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E1 += (-self.s_NMDA_E1 / 0.1) + 500.0*self.x_NMDA_E1*(1 - self.s_NMDA_E1) 
+		self.d_x_NMDA_E2 += (-self.x_NMDA_E2 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E2 += (-self.s_NMDA_E2 / 0.1) + 500.0*self.x_NMDA_E2*(1 - self.s_NMDA_E2) 
+		self.d_x_NMDA_E3 += (-self.x_NMDA_E3 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E3 += (-self.s_NMDA_E3 / 0.1) + 500.0*self.x_NMDA_E3*(1 - self.s_NMDA_E3) 
+		self.d_x_NMDA_E4 += (-self.x_NMDA_E4 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E4 += (-self.s_NMDA_E4 / 0.1) + 500.0*self.x_NMDA_E4*(1 - self.s_NMDA_E4) 
+		self.d_x_NMDA_E5 += (-self.x_NMDA_E5 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E5 += (-self.s_NMDA_E5 / 0.1) + 500.0*self.x_NMDA_E5*(1 - self.s_NMDA_E5) 
+		self.d_x_NMDA_E6 += (-self.x_NMDA_E6 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E6 += (-self.s_NMDA_E6 / 0.1) + 500.0*self.x_NMDA_E6*(1 - self.s_NMDA_E6) 
+		self.d_x_NMDA_E7 += (-self.x_NMDA_E7 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E7 += (-self.s_NMDA_E7 / 0.1) + 500.0*self.x_NMDA_E7*(1 - self.s_NMDA_E7) 
+		self.d_x_NMDA_E8 += (-self.x_NMDA_E8 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E8 += (-self.s_NMDA_E8 / 0.1) + 500.0*self.x_NMDA_E8*(1 - self.s_NMDA_E8) 
+		self.d_x_NMDA_E9 += (-self.x_NMDA_E9 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E9 += (-self.s_NMDA_E9 / 0.1) + 500.0*self.x_NMDA_E9*(1 - self.s_NMDA_E9) 
+		self.d_x_NMDA_E10 += (-self.x_NMDA_E10 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E10 += (-self.s_NMDA_E10 / 0.1) + 500.0*self.x_NMDA_E10*(1 - self.s_NMDA_E10) 
+		self.d_x_NMDA_E11 += (-self.x_NMDA_E11 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E11 += (-self.s_NMDA_E11 / 0.1) + 500.0*self.x_NMDA_E11*(1 - self.s_NMDA_E11) 
+		self.d_x_NMDA_E12 += (-self.x_NMDA_E12 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E12 += (-self.s_NMDA_E12 / 0.1) + 500.0*self.x_NMDA_E12*(1 - self.s_NMDA_E12) 
+		self.d_x_NMDA_E13 += (-self.x_NMDA_E13 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E13 += (-self.s_NMDA_E13 / 0.1) + 500.0*self.x_NMDA_E13*(1 - self.s_NMDA_E13) 
+		self.d_x_NMDA_E14 += (-self.x_NMDA_E14 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E14 += (-self.s_NMDA_E14 / 0.1) + 500.0*self.x_NMDA_E14*(1 - self.s_NMDA_E14) 
+		self.d_x_NMDA_E15 += (-self.x_NMDA_E15 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_E15 += (-self.s_NMDA_E15 / 0.1) + 500.0*self.x_NMDA_E15*(1 - self.s_NMDA_E15) 
+		# E ---AMPA---> I
+		self.d_s_AMPA_I0 += (-self.s_AMPA_I0 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_I1 += (-self.s_AMPA_I1 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_I2 += (-self.s_AMPA_I2 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_AMPA_I3 += (-self.s_AMPA_I3 / 0.002) + self.current_stimuli['E'] 
+		# E ---NMDA---> I
+		self.d_x_NMDA_I0 += (-self.x_NMDA_I0 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_I0 += (-self.s_NMDA_I0 / 0.1) + 500.0*self.x_NMDA_I0*(1 - self.s_NMDA_I0) 
+		self.d_x_NMDA_I1 += (-self.x_NMDA_I1 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_I1 += (-self.s_NMDA_I1 / 0.1) + 500.0*self.x_NMDA_I1*(1 - self.s_NMDA_I1) 
+		self.d_x_NMDA_I2 += (-self.x_NMDA_I2 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_I2 += (-self.s_NMDA_I2 / 0.1) + 500.0*self.x_NMDA_I2*(1 - self.s_NMDA_I2) 
+		self.d_x_NMDA_I3 += (-self.x_NMDA_I3 / 0.002) + self.current_stimuli['E'] 
+		self.d_s_NMDA_I3 += (-self.s_NMDA_I3 / 0.1) + 500.0*self.x_NMDA_I3*(1 - self.s_NMDA_I3) 
+		# I ---GABA---> E
+		self.d_s_GABA_E0 += (-self.s_GABA_E0 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E1 += (-self.s_GABA_E1 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E2 += (-self.s_GABA_E2 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E3 += (-self.s_GABA_E3 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E4 += (-self.s_GABA_E4 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E5 += (-self.s_GABA_E5 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E6 += (-self.s_GABA_E6 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E7 += (-self.s_GABA_E7 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E8 += (-self.s_GABA_E8 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E9 += (-self.s_GABA_E9 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E10 += (-self.s_GABA_E10 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E11 += (-self.s_GABA_E11 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E12 += (-self.s_GABA_E12 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E13 += (-self.s_GABA_E13 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E14 += (-self.s_GABA_E14 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_E15 += (-self.s_GABA_E15 / 0.005) + self.current_stimuli['I'] 
+		# I ---GABA---> I
+		self.d_s_GABA_I0 += (-self.s_GABA_I0 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_I1 += (-self.s_GABA_I1 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_I2 += (-self.s_GABA_I2 / 0.005) + self.current_stimuli['I'] 
+		self.d_s_GABA_I3 += (-self.s_GABA_I3 / 0.005) + self.current_stimuli['I'] 
+		# noiseE ---AMPA_EXT---> E
+		self.d_s_AMPA_EXT_E0[0:5] += (-self.s_AMPA_EXT_E0[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E1[0:5] += (-self.s_AMPA_EXT_E1[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E2[0:5] += (-self.s_AMPA_EXT_E2[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E3[0:5] += (-self.s_AMPA_EXT_E3[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E4[0:5] += (-self.s_AMPA_EXT_E4[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E5[0:5] += (-self.s_AMPA_EXT_E5[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E6[0:5] += (-self.s_AMPA_EXT_E6[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E7[0:5] += (-self.s_AMPA_EXT_E7[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E8[0:5] += (-self.s_AMPA_EXT_E8[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E9[0:5] += (-self.s_AMPA_EXT_E9[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E10[0:5] += (-self.s_AMPA_EXT_E10[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E11[0:5] += (-self.s_AMPA_EXT_E11[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E12[0:5] += (-self.s_AMPA_EXT_E12[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E13[0:5] += (-self.s_AMPA_EXT_E13[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E14[0:5] += (-self.s_AMPA_EXT_E14[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		self.d_s_AMPA_EXT_E15[0:5] += (-self.s_AMPA_EXT_E15[0:5] / 0.002) + self.current_stimuli['noiseE'][0:5]  
+		# noiseI ---AMPA_EXT---> I
+		self.d_s_AMPA_EXT_I0[0:5] += (-self.s_AMPA_EXT_I0[0:5] / 0.002) + self.current_stimuli['noiseI'][0:5]  
+		self.d_s_AMPA_EXT_I1[0:5] += (-self.s_AMPA_EXT_I1[0:5] / 0.002) + self.current_stimuli['noiseI'][0:5]  
+		self.d_s_AMPA_EXT_I2[0:5] += (-self.s_AMPA_EXT_I2[0:5] / 0.002) + self.current_stimuli['noiseI'][0:5]  
+		self.d_s_AMPA_EXT_I3[0:5] += (-self.s_AMPA_EXT_I3[0:5] / 0.002) + self.current_stimuli['noiseI'][0:5]  
+		# stimA ---AMPA_EXT---subgroup of---> E
+		self.d_s_AMPA_EXT_E0[5:10] += (-self.s_AMPA_EXT_E0[5:10] / 0.002) + self.current_stimuli['stimA'][5:10]  
+		self.d_s_AMPA_EXT_E1[5:10] += (-self.s_AMPA_EXT_E1[5:10] / 0.002) + self.current_stimuli['stimA'][5:10]  
+		self.d_s_AMPA_EXT_E2[5:10] += (-self.s_AMPA_EXT_E2[5:10] / 0.002) + self.current_stimuli['stimA'][5:10]  
+		self.d_s_AMPA_EXT_E3[5:10] += (-self.s_AMPA_EXT_E3[5:10] / 0.002) + self.current_stimuli['stimA'][5:10]  
+		# stimB ---AMPA_EXT---subgroup of---> E
+		self.d_s_AMPA_EXT_E4[5:10] += (-self.s_AMPA_EXT_E4[5:10] / 0.002) + self.current_stimuli['stimB'][5:10]  
+		self.d_s_AMPA_EXT_E5[5:10] += (-self.s_AMPA_EXT_E5[5:10] / 0.002) + self.current_stimuli['stimB'][5:10]  
+		self.d_s_AMPA_EXT_E6[5:10] += (-self.s_AMPA_EXT_E6[5:10] / 0.002) + self.current_stimuli['stimB'][5:10]  
+		self.d_s_AMPA_EXT_E7[5:10] += (-self.s_AMPA_EXT_E7[5:10] / 0.002) + self.current_stimuli['stimB'][5:10]  
 	#%% synaptic current calculation func
 	def calculate_synaptic_currents(self):
-		I_E0_sAMPA = 2.1e-09*(self.V_E0 - 0)*(0.0*self.sAMPA_E0 + 1.7*self.sAMPA_E1 + 1.7*self.sAMPA_E2 + 1.7*self.sAMPA_E3 + 0.8764705882352941*self.sAMPA_E4 + 0.8764705882352941*self.sAMPA_E5 + 0.8764705882352941*self.sAMPA_E6 + 0.8764705882352941*self.sAMPA_E7 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E1_sAMPA = 2.1e-09*(self.V_E1 - 0)*(1.7*self.sAMPA_E0 + 1.7*self.sAMPA_E2 + 1.7*self.sAMPA_E3 + 0.8764705882352941*self.sAMPA_E4 + 0.8764705882352941*self.sAMPA_E5 + 0.8764705882352941*self.sAMPA_E6 + 0.8764705882352941*self.sAMPA_E7 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E2_sAMPA = 2.1e-09*(self.V_E2 - 0)*(1.7*self.sAMPA_E0 + 1.7*self.sAMPA_E1 + 1.7*self.sAMPA_E3 + 0.8764705882352941*self.sAMPA_E4 + 0.8764705882352941*self.sAMPA_E5 + 0.8764705882352941*self.sAMPA_E6 + 0.8764705882352941*self.sAMPA_E7 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E3_sAMPA = 2.1e-09*(self.V_E3 - 0)*(1.7*self.sAMPA_E0 + 1.7*self.sAMPA_E1 + 1.7*self.sAMPA_E2 + 0.8764705882352941*self.sAMPA_E4 + 0.8764705882352941*self.sAMPA_E5 + 0.8764705882352941*self.sAMPA_E6 + 0.8764705882352941*self.sAMPA_E7 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E4_sAMPA = 2.1e-09*(self.V_E4 - 0)*(0.8764705882352941*self.sAMPA_E0 + 0.8764705882352941*self.sAMPA_E1 + 0.8764705882352941*self.sAMPA_E2 + 0.8764705882352941*self.sAMPA_E3 + 1.7*self.sAMPA_E5 + 1.7*self.sAMPA_E6 + 1.7*self.sAMPA_E7 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E5_sAMPA = 2.1e-09*(self.V_E5 - 0)*(0.8764705882352941*self.sAMPA_E0 + 0.8764705882352941*self.sAMPA_E1 + 0.8764705882352941*self.sAMPA_E2 + 0.8764705882352941*self.sAMPA_E3 + 1.7*self.sAMPA_E4 + 1.7*self.sAMPA_E6 + 1.7*self.sAMPA_E7 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E6_sAMPA = 2.1e-09*(self.V_E6 - 0)*(0.8764705882352941*self.sAMPA_E0 + 0.8764705882352941*self.sAMPA_E1 + 0.8764705882352941*self.sAMPA_E2 + 0.8764705882352941*self.sAMPA_E3 + 1.7*self.sAMPA_E4 + 1.7*self.sAMPA_E5 + 1.7*self.sAMPA_E7 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E7_sAMPA = 2.1e-09*(self.V_E7 - 0)*(0.8764705882352941*self.sAMPA_E0 + 0.8764705882352941*self.sAMPA_E1 + 0.8764705882352941*self.sAMPA_E2 + 0.8764705882352941*self.sAMPA_E3 + 1.7*self.sAMPA_E4 + 1.7*self.sAMPA_E5 + 1.7*self.sAMPA_E6 + 0.8764705882352941*self.sAMPA_E8 + 0.8764705882352941*self.sAMPA_E9 + 0.8764705882352941*self.sAMPA_E10 + 0.8764705882352941*self.sAMPA_E11 + 0.8764705882352941*self.sAMPA_E12 + 0.8764705882352941*self.sAMPA_E13 + 0.8764705882352941*self.sAMPA_E14 + 0.8764705882352941*self.sAMPA_E15)
-		I_E8_sAMPA = 2.1e-09*(self.V_E8 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_E9_sAMPA = 2.1e-09*(self.V_E9 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_E10_sAMPA = 2.1e-09*(self.V_E10 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_E11_sAMPA = 2.1e-09*(self.V_E11 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_E12_sAMPA = 2.1e-09*(self.V_E12 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_E13_sAMPA = 2.1e-09*(self.V_E13 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_E14_sAMPA = 2.1e-09*(self.V_E14 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E15)
-		I_E15_sAMPA = 2.1e-09*(self.V_E15 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14)
-		I_E0_sNMDA = (1.6500000000000002e-08*(self.V_E0 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E0)/3.57)))*(0.0*self.sNMDA_E0 + 1.7*self.sNMDA_E1 + 1.7*self.sNMDA_E2 + 1.7*self.sNMDA_E3 + 0.8764705882352941*self.sNMDA_E4 + 0.8764705882352941*self.sNMDA_E5 + 0.8764705882352941*self.sNMDA_E6 + 0.8764705882352941*self.sNMDA_E7 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E1_sNMDA = (1.6500000000000002e-08*(self.V_E1 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E1)/3.57)))*(1.7*self.sNMDA_E0 + 1.7*self.sNMDA_E2 + 1.7*self.sNMDA_E3 + 0.8764705882352941*self.sNMDA_E4 + 0.8764705882352941*self.sNMDA_E5 + 0.8764705882352941*self.sNMDA_E6 + 0.8764705882352941*self.sNMDA_E7 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E2_sNMDA = (1.6500000000000002e-08*(self.V_E2 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E2)/3.57)))*(1.7*self.sNMDA_E0 + 1.7*self.sNMDA_E1 + 1.7*self.sNMDA_E3 + 0.8764705882352941*self.sNMDA_E4 + 0.8764705882352941*self.sNMDA_E5 + 0.8764705882352941*self.sNMDA_E6 + 0.8764705882352941*self.sNMDA_E7 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E3_sNMDA = (1.6500000000000002e-08*(self.V_E3 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E3)/3.57)))*(1.7*self.sNMDA_E0 + 1.7*self.sNMDA_E1 + 1.7*self.sNMDA_E2 + 0.8764705882352941*self.sNMDA_E4 + 0.8764705882352941*self.sNMDA_E5 + 0.8764705882352941*self.sNMDA_E6 + 0.8764705882352941*self.sNMDA_E7 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E4_sNMDA = (1.6500000000000002e-08*(self.V_E4 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E4)/3.57)))*(0.8764705882352941*self.sNMDA_E0 + 0.8764705882352941*self.sNMDA_E1 + 0.8764705882352941*self.sNMDA_E2 + 0.8764705882352941*self.sNMDA_E3 + 1.7*self.sNMDA_E5 + 1.7*self.sNMDA_E6 + 1.7*self.sNMDA_E7 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E5_sNMDA = (1.6500000000000002e-08*(self.V_E5 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E5)/3.57)))*(0.8764705882352941*self.sNMDA_E0 + 0.8764705882352941*self.sNMDA_E1 + 0.8764705882352941*self.sNMDA_E2 + 0.8764705882352941*self.sNMDA_E3 + 1.7*self.sNMDA_E4 + 1.7*self.sNMDA_E6 + 1.7*self.sNMDA_E7 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E6_sNMDA = (1.6500000000000002e-08*(self.V_E6 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E6)/3.57)))*(0.8764705882352941*self.sNMDA_E0 + 0.8764705882352941*self.sNMDA_E1 + 0.8764705882352941*self.sNMDA_E2 + 0.8764705882352941*self.sNMDA_E3 + 1.7*self.sNMDA_E4 + 1.7*self.sNMDA_E5 + 1.7*self.sNMDA_E7 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E7_sNMDA = (1.6500000000000002e-08*(self.V_E7 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E7)/3.57)))*(0.8764705882352941*self.sNMDA_E0 + 0.8764705882352941*self.sNMDA_E1 + 0.8764705882352941*self.sNMDA_E2 + 0.8764705882352941*self.sNMDA_E3 + 1.7*self.sNMDA_E4 + 1.7*self.sNMDA_E5 + 1.7*self.sNMDA_E6 + 0.8764705882352941*self.sNMDA_E8 + 0.8764705882352941*self.sNMDA_E9 + 0.8764705882352941*self.sNMDA_E10 + 0.8764705882352941*self.sNMDA_E11 + 0.8764705882352941*self.sNMDA_E12 + 0.8764705882352941*self.sNMDA_E13 + 0.8764705882352941*self.sNMDA_E14 + 0.8764705882352941*self.sNMDA_E15)
-		I_E8_sNMDA = (1.6500000000000002e-08*(self.V_E8 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E8)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_E9_sNMDA = (1.6500000000000002e-08*(self.V_E9 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E9)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_E10_sNMDA = (1.6500000000000002e-08*(self.V_E10 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E10)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_E11_sNMDA = (1.6500000000000002e-08*(self.V_E11 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E11)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_E12_sNMDA = (1.6500000000000002e-08*(self.V_E12 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E12)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_E13_sNMDA = (1.6500000000000002e-08*(self.V_E13 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E13)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_E14_sNMDA = (1.6500000000000002e-08*(self.V_E14 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E14)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E15)
-		I_E15_sNMDA = (1.6500000000000002e-08*(self.V_E15 - 0)/(1 + (0.001*np.exp(-0.062*self.V_E15)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14)
-		I_I0_sAMPA = 4e-09*(self.V_I0 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_I1_sAMPA = 4e-09*(self.V_I1 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_I2_sAMPA = 4e-09*(self.V_I2 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_I3_sAMPA = 4e-09*(self.V_I3 - 0)*(1.0*self.sAMPA_E0 + 1.0*self.sAMPA_E1 + 1.0*self.sAMPA_E2 + 1.0*self.sAMPA_E3 + 1.0*self.sAMPA_E4 + 1.0*self.sAMPA_E5 + 1.0*self.sAMPA_E6 + 1.0*self.sAMPA_E7 + 1.0*self.sAMPA_E8 + 1.0*self.sAMPA_E9 + 1.0*self.sAMPA_E10 + 1.0*self.sAMPA_E11 + 1.0*self.sAMPA_E12 + 1.0*self.sAMPA_E13 + 1.0*self.sAMPA_E14 + 1.0*self.sAMPA_E15)
-		I_I0_sNMDA = (1.3000000000000002e-08*(self.V_I0 - 0)/(1 + (0.001*np.exp(-0.062*self.V_I0)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_I1_sNMDA = (1.3000000000000002e-08*(self.V_I1 - 0)/(1 + (0.001*np.exp(-0.062*self.V_I1)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_I2_sNMDA = (1.3000000000000002e-08*(self.V_I2 - 0)/(1 + (0.001*np.exp(-0.062*self.V_I2)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_I3_sNMDA = (1.3000000000000002e-08*(self.V_I3 - 0)/(1 + (0.001*np.exp(-0.062*self.V_I3)/3.57)))*(1.0*self.sNMDA_E0 + 1.0*self.sNMDA_E1 + 1.0*self.sNMDA_E2 + 1.0*self.sNMDA_E3 + 1.0*self.sNMDA_E4 + 1.0*self.sNMDA_E5 + 1.0*self.sNMDA_E6 + 1.0*self.sNMDA_E7 + 1.0*self.sNMDA_E8 + 1.0*self.sNMDA_E9 + 1.0*self.sNMDA_E10 + 1.0*self.sNMDA_E11 + 1.0*self.sNMDA_E12 + 1.0*self.sNMDA_E13 + 1.0*self.sNMDA_E14 + 1.0*self.sNMDA_E15)
-		I_E0_sGABA = 1.3e-07*(self.V_E0 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E1_sGABA = 1.3e-07*(self.V_E1 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E2_sGABA = 1.3e-07*(self.V_E2 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E3_sGABA = 1.3e-07*(self.V_E3 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E4_sGABA = 1.3e-07*(self.V_E4 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E5_sGABA = 1.3e-07*(self.V_E5 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E6_sGABA = 1.3e-07*(self.V_E6 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E7_sGABA = 1.3e-07*(self.V_E7 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E8_sGABA = 1.3e-07*(self.V_E8 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E9_sGABA = 1.3e-07*(self.V_E9 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E10_sGABA = 1.3e-07*(self.V_E10 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E11_sGABA = 1.3e-07*(self.V_E11 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E12_sGABA = 1.3e-07*(self.V_E12 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E13_sGABA = 1.3e-07*(self.V_E13 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E14_sGABA = 1.3e-07*(self.V_E14 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_E15_sGABA = 1.3e-07*(self.V_E15 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_I0_sGABA = 1.0000000000000001e-07*(self.V_I0 - 0)*(0.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_I1_sGABA = 1.0000000000000001e-07*(self.V_I1 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I2 + 1.0*self.sGABA_I3)
-		I_I2_sGABA = 1.0000000000000001e-07*(self.V_I2 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I3)
-		I_I3_sGABA = 1.0000000000000001e-07*(self.V_I3 - 0)*(1.0*self.sGABA_I0 + 1.0*self.sGABA_I1 + 1.0*self.sGABA_I2)
-		I_E0_sAMPA_EXT = 2.1e-09*(self.V_E0 - 0)*self.sAMPA_EXT_E0
-		I_E1_sAMPA_EXT = 2.1e-09*(self.V_E1 - 0)*self.sAMPA_EXT_E1
-		I_E2_sAMPA_EXT = 2.1e-09*(self.V_E2 - 0)*self.sAMPA_EXT_E2
-		I_E3_sAMPA_EXT = 2.1e-09*(self.V_E3 - 0)*self.sAMPA_EXT_E3
-		I_E4_sAMPA_EXT = 2.1e-09*(self.V_E4 - 0)*self.sAMPA_EXT_E4
-		I_E5_sAMPA_EXT = 2.1e-09*(self.V_E5 - 0)*self.sAMPA_EXT_E5
-		I_E6_sAMPA_EXT = 2.1e-09*(self.V_E6 - 0)*self.sAMPA_EXT_E6
-		I_E7_sAMPA_EXT = 2.1e-09*(self.V_E7 - 0)*self.sAMPA_EXT_E7
-		I_E8_sAMPA_EXT = 2.1e-09*(self.V_E8 - 0)*self.sAMPA_EXT_E8
-		I_E9_sAMPA_EXT = 2.1e-09*(self.V_E9 - 0)*self.sAMPA_EXT_E9
-		I_E10_sAMPA_EXT = 2.1e-09*(self.V_E10 - 0)*self.sAMPA_EXT_E10
-		I_E11_sAMPA_EXT = 2.1e-09*(self.V_E11 - 0)*self.sAMPA_EXT_E11
-		I_E12_sAMPA_EXT = 2.1e-09*(self.V_E12 - 0)*self.sAMPA_EXT_E12
-		I_E13_sAMPA_EXT = 2.1e-09*(self.V_E13 - 0)*self.sAMPA_EXT_E13
-		I_E14_sAMPA_EXT = 2.1e-09*(self.V_E14 - 0)*self.sAMPA_EXT_E14
-		I_E15_sAMPA_EXT = 2.1e-09*(self.V_E15 - 0)*self.sAMPA_EXT_E15
-		I_I0_sAMPA_EXT = 4e-09*(self.V_I0 - 0)*self.sAMPA_EXT_I0
-		I_I1_sAMPA_EXT = 4e-09*(self.V_I1 - 0)*self.sAMPA_EXT_I1
-		I_I2_sAMPA_EXT = 4e-09*(self.V_I2 - 0)*self.sAMPA_EXT_I2
-		I_I3_sAMPA_EXT = 4e-09*(self.V_I3 - 0)*self.sAMPA_EXT_I3
-		#%% calculate synaptic currents
-		self.Isyn_E0 = + I_E0_sAMPA+ I_E0_sAMPA_EXT+ I_E0_sNMDA+ I_E0_sGABA
-		self.Isyn_E1 = + I_E1_sAMPA+ I_E1_sAMPA_EXT+ I_E1_sNMDA+ I_E1_sGABA
-		self.Isyn_E2 = + I_E2_sAMPA+ I_E2_sAMPA_EXT+ I_E2_sNMDA+ I_E2_sGABA
-		self.Isyn_E3 = + I_E3_sAMPA+ I_E3_sAMPA_EXT+ I_E3_sNMDA+ I_E3_sGABA
-		self.Isyn_E4 = + I_E4_sAMPA+ I_E4_sAMPA_EXT+ I_E4_sNMDA+ I_E4_sGABA
-		self.Isyn_E5 = + I_E5_sAMPA+ I_E5_sAMPA_EXT+ I_E5_sNMDA+ I_E5_sGABA
-		self.Isyn_E6 = + I_E6_sAMPA+ I_E6_sAMPA_EXT+ I_E6_sNMDA+ I_E6_sGABA
-		self.Isyn_E7 = + I_E7_sAMPA+ I_E7_sAMPA_EXT+ I_E7_sNMDA+ I_E7_sGABA
-		self.Isyn_E8 = + I_E8_sAMPA+ I_E8_sAMPA_EXT+ I_E8_sNMDA+ I_E8_sGABA
-		self.Isyn_E9 = + I_E9_sAMPA+ I_E9_sAMPA_EXT+ I_E9_sNMDA+ I_E9_sGABA
-		self.Isyn_E10 = + I_E10_sAMPA+ I_E10_sAMPA_EXT+ I_E10_sNMDA+ I_E10_sGABA
-		self.Isyn_E11 = + I_E11_sAMPA+ I_E11_sAMPA_EXT+ I_E11_sNMDA+ I_E11_sGABA
-		self.Isyn_E12 = + I_E12_sAMPA+ I_E12_sAMPA_EXT+ I_E12_sNMDA+ I_E12_sGABA
-		self.Isyn_E13 = + I_E13_sAMPA+ I_E13_sAMPA_EXT+ I_E13_sNMDA+ I_E13_sGABA
-		self.Isyn_E14 = + I_E14_sAMPA+ I_E14_sAMPA_EXT+ I_E14_sNMDA+ I_E14_sGABA
-		self.Isyn_E15 = + I_E15_sAMPA+ I_E15_sAMPA_EXT+ I_E15_sNMDA+ I_E15_sGABA
-		self.Isyn_I0 = + I_I0_sAMPA+ I_I0_sAMPA_EXT+ I_I0_sNMDA+ I_I0_sGABA
-		self.Isyn_I1 = + I_I1_sAMPA+ I_I1_sAMPA_EXT+ I_I1_sNMDA+ I_I1_sGABA
-		self.Isyn_I2 = + I_I2_sAMPA+ I_I2_sAMPA_EXT+ I_I2_sNMDA+ I_I2_sGABA
-		self.Isyn_I3 = + I_I3_sAMPA+ I_I3_sAMPA_EXT+ I_I3_sNMDA+ I_I3_sGABA
-	#%% step func
-	def step(self):
-		self.calculate_dxdt_all()
-		self.calculate_synaptic_currents()
-		self.integrate_all_euler()
+		# E ---AMPA---> E
+		self.I_Syn[0] += 2.1e-09*(self.V[0]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[1] += 2.1e-09*(self.V[1]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[2] += 2.1e-09*(self.V[2]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[3] += 2.1e-09*(self.V[3]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[4] += 2.1e-09*(self.V[4]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[5] += 2.1e-09*(self.V[5]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[6] += 2.1e-09*(self.V[6]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[7] += 2.1e-09*(self.V[7]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[8] += 2.1e-09*(self.V[8]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[9] += 2.1e-09*(self.V[9]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[10] += 2.1e-09*(self.V[10]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[11] += 2.1e-09*(self.V[11]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[12] += 2.1e-09*(self.V[12]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[13] += 2.1e-09*(self.V[13]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[14] += 2.1e-09*(self.V[14]-0)*(self.synapse_dict['connection_list'][0]) 
+		self.I_Syn[15] += 2.1e-09*(self.V[15]-0)*(self.synapse_dict['connection_list'][0]) 
+		# E ---AMPA---> I
+		self.I_Syn[16] += 4e-09*(self.V[16]-0)*(self.synapse_dict['connection_list'][2]) 
+		self.I_Syn[17] += 4e-09*(self.V[17]-0)*(self.synapse_dict['connection_list'][2]) 
+		self.I_Syn[18] += 4e-09*(self.V[18]-0)*(self.synapse_dict['connection_list'][2]) 
+		self.I_Syn[19] += 4e-09*(self.V[19]-0)*(self.synapse_dict['connection_list'][2]) 
