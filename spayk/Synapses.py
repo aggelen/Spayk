@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from spayk.Integrators import EulerIntegrator, RK4Integrator
-
+from spayk.Stimuli import PoissonSpikeTrain
 
 #%% New Core
 
@@ -84,7 +84,22 @@ class SynapseGroup:
          
          self.channels.append("GABA")
          self.state_labels.append(state_label)
-
+    
+    def synapse_curve(self):
+        spike_train = PoissonSpikeTrain(1, 10, (0,1,0.1e-3))
+        spike_train.raster_plot()
+        s = 0
+        dt = 0.1e-3
+        s_hist = []
+        for spike in spike_train.spikes.T:
+            if spike:
+                aykut = 4
+            ds = (-s / 0.002) + spike
+            s = s + ds*dt
+            s_hist.append(s)
+            
+        plt.figure()
+        plt.plot(s_hist)
 
 #%% OLD CORE
 

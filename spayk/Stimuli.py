@@ -61,6 +61,8 @@ class SpikeTrain:
         yticks = range(min(spike_loc[:,0]), max(spike_loc[:,0]) + 1)
         ax.set_yticks(yticks)
         
+        ax.set_xlim([0,10000])
+        
     def firing_rates(self):
         t_start, t_stop, dt = self.time_params
         total_time = t_stop - t_start
