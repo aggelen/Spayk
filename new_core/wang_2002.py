@@ -20,7 +20,7 @@ from spayk.Architechtures import NeuralCircuit
 from spayk.Neurons import LIFGroup
 from spayk.Synapses import SynapseGroup
 
-from experiment_config import Wang2002Config as cfg
+from experiment_config_wang import Wang2002Config as cfg
 
 from spayk.Stimuli import PoissonActivity, SpikeTrain
 
@@ -83,14 +83,14 @@ s_Noise2E.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_exc, cfg.no_noise_E
 s_Noise2I = SynapseGroup('noiseI', 'I', cfg.synapse_params)
 s_Noise2I.AMPA_EXT(gs=cfg.g_ampa_ext2inh, ws=np.ones((cfg.no_inh, cfg.no_noise_I)), state_label='sAMPA_EXT')
 
-s_StimA2A = SynapseGroup('stimA', 'E[0:4]', cfg.synapse_params)
+s_StimA2A = SynapseGroup('stimA', 'E[0:240]', cfg.synapse_params)
 s_StimA2A.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_A, cfg.no_stim_A)), state_label='sAMPA_EXT')
 
-s_StimB2B = SynapseGroup('stimB', 'E[4:8]', cfg.synapse_params)
+s_StimB2B = SynapseGroup('stimB', 'E[240:480]', cfg.synapse_params)
 s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_B, cfg.no_stim_B)), state_label='sAMPA_EXT')
 
-# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
-synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
+synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
+# synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 #%% Build Neural Circuit
 params = {'dt': cfg.dt}
 nc = NeuralCircuit(neurons, synapses, stimulus, params)

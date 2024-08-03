@@ -9,11 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class LIFGroup:
-    def __init__(self, no_neurons, group_label, params):
+    def __init__(self, no_neurons, group_label, params, save_I_syn=False):
         self.group_label = group_label
         self.no_neurons = no_neurons
         self.params = params
-        
+        self.save_I_syn = save_I_syn
         # table with cols AMPA AMPAEXT NMDA GABA
         self.neuron_channel_assoc_table = np.zeros((self.no_neurons, 4))
         

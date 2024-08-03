@@ -14,14 +14,15 @@ from spayk.Stimuli import PoissonSpikeTrain
 #%% New Core
 
 class SynapseGroup:
-    def __init__(self, source=None, target=None, params=None, state_labels=None):
+    def __init__(self, source=None, target=None, params=None, save_channels=False):
         self.params = params
         self.source = source
         self.target = target
         self.channels = []
-        self.state_labels = []
         
-    def AMPA(self, gs, ws, state_label):
+        self.save_channels = save_channels
+        
+    def AMPA(self, gs, ws):
         if isinstance(gs, float):
             self.g_AMPA = gs
         else:
@@ -35,9 +36,8 @@ class SynapseGroup:
             raise NotImplementedError()
         
         self.channels.append("AMPA"),
-        self.state_labels.append(state_label)
         
-    def AMPA_EXT(self, gs, ws, state_label):
+    def AMPA_EXT(self, gs, ws):
         if isinstance(gs, float):
             self.g_AMPA_ext = gs
         else:
@@ -51,9 +51,8 @@ class SynapseGroup:
             raise NotImplementedError()
         
         self.channels.append("AMPA_EXT")
-        self.state_labels.append(state_label)
         
-    def NMDA(self, gs, ws, state_label):
+    def NMDA(self, gs, ws):
         if isinstance(gs, float):
             self.g_NMDA = gs
         else:
@@ -67,9 +66,8 @@ class SynapseGroup:
             raise NotImplementedError()
         
         self.channels.append("NMDA")
-        self.state_labels.append(state_label)
         
-    def GABA(self, gs, ws, state_label):
+    def GABA(self, gs, ws):
          if isinstance(gs, float):
              self.g_GABA = gs
          else:
@@ -83,7 +81,7 @@ class SynapseGroup:
              raise NotImplementedError()
          
          self.channels.append("GABA")
-         self.state_labels.append(state_label)
+         # self.state_labels.append(state_label)
     
     def synapse_curve(self):
         spike_train = PoissonSpikeTrain(1, 10, (0,1,0.1e-3))

@@ -28,14 +28,20 @@ from spayk.Stimuli import PoissonActivity, SpikeTrain
 stimulus = [PoissonActivity(25, 25, cfg.stim_time_params,'external_stim')]
 
 #%% Neurons
-neurons = [LIFGroup(no_neurons=1, group_label='N', params=cfg.exc_neuron_params)]
+no_neurons = 1
+neurons = [LIFGroup(no_neurons=no_neurons, group_label='E', params=cfg.exc_neuron_params),
+           LIFGroup(no_neurons=no_neurons, group_label='I', params=cfg.inh_neuron_params)]
+
 # neurons[0].firing_rate_curve()
 
 #%% Stimulus Synapses
-stim_to_neuron = SynapseGroup('external_stim', 'N', cfg.synapse_params)
-stim_to_neuron.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((1, 25)), state_label='sAMPA_EXT')
+stim_to_neuron = SynapseGroup('external_stim', 'E', cfg.synapse_params)
+stim_to_neuron.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((no_neurons, 25)), state_label='sAMPA_EXT')
 
-synapses = [stim_to_neuron]
+E_to_I = SynapseGroup('E', 'I', cfg.synapse_params)
+E_to_I.AMPA(gs=cfg.g_ampa_exc2inh, ws=np.ones((1, 1)), state_label='sAMPA')
+
+synapses = [stim_to_neuron, E_to_I]
 # synapses[0].synapse_curve()
 # synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 

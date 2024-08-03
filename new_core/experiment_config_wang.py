@@ -16,13 +16,13 @@ class Wang2002Config:
     no_inh = 400
     
     #%% Noise and stim params
-    no_noise_E = 240
-    no_noise_I = 240
+    no_noise_E = 1000
+    no_noise_I = 1000
     no_stim_A = 240
     no_stim_B = 240
     
-    freq_noise_E = 20
-    freq_noise_I = 20
+    freq_noise_E = 2.4
+    freq_noise_I = 2.4
     freq_stim_A = 15
     freq_stim_B = 30
     
