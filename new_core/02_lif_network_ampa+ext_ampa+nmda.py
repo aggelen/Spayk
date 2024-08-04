@@ -57,12 +57,12 @@ synapses = [stim_to_neuron, syn_N2E, syn_N2I, syn_E2I, syn_I2E]
 # synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 
 #%% Build Neural Circuit
-params = {'dt': cfg.dt}
+params = {'dt': cfg.dt,
+          'sim_duration': 1}
 nc = NeuralCircuit(neurons, synapses, stimulus, params)
 
 #%% Simulation
-stop_time = 1
-nc.keep_alive(tsim=stop_time)
+nc.keep_alive()
 
 #%% Output Spikes
 op_spikes = np.array(nc.problem.output_spikes).T

@@ -35,6 +35,7 @@ class CodeGenerator:
 
     def analyze_network(self, neurons, synapses, stimului, params):
         self.dt = params['dt']
+        self.sim_duration = params['sim_duration']
         
         self.runtime_path = "{}/first_run".format(pathlib.Path().resolve())
         pathlib.Path(self.runtime_path).mkdir(parents=True, exist_ok=True)
@@ -234,6 +235,9 @@ class CodeGenerator:
 
             #%% create stimuli
             self.code_string += """import numpy as np\n"""
+            
+            self.write_equality("from tqdm import tqdm\n")
+            
             self.code_string += """from spayk.Stimuli import *\nimport pickle\nfrom collections import defaultdict\n"""
         
             self.code_string += "\n#%% Problem\n"
@@ -243,6 +247,7 @@ class CodeGenerator:
             self.code_string += "\t\tself.synapse_dict = self.load_pickle('{}/synapse_dict.pickle')\n\n".format(self.runtime_path)
             self.code_string += "\t\tself.stimuli_dict = self.load_pickle('{}/stimuli_dict.pickle')\n\n".format(self.runtime_path)
             self.code_string += "\t\tself.dt = {}\n\n".format(self.dt)
+            self.code_string += "\t\tself.tsim = {}\n\n".format(self.sim_duration)
             self.code_string += "\t\tself.output_spikes = []\n\n"
             self.code_string += "\t\tself.channel_history = defaultdict(list)\n\n"
 
@@ -585,7 +590,14 @@ class CodeGenerator:
             
             #%% run the network
             self.code_string += "#%% Solution\n"
-            self.code_string += "problem = Problem()\n"
+            
+            self.write_equality("problem = Problem()\n")
+            self.write_equality("time_array = np.arange(0.0, problem.tsim, problem.dt)\n")
+            self.write_equality("t_idx = 0\n")
+            self.write_equality("for t in tqdm(time_array):\n")
+            self.write_equality("\tproblem.forward(t_idx)\n")
+            self.write_equality("\tt_idx += 1")
+ 
 
             print(
                 "Simulation stoped! Please first analyse your problem with ProblemGenerator.analyze_network")
