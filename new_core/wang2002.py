@@ -31,8 +31,8 @@ stimulus = [PoissonActivity(cfg.no_noise_E, cfg.freq_noise_E, cfg.stim_time_para
             PoissonActivity(cfg.no_stim_B, cfg.freq_stim_B, cfg.stim_time_params,'stimB')]
 
 #%% Neurons
-neurons = [LIFGroup(no_neurons=cfg.no_exc, group_label='E', params=cfg.neuron_params),
-           LIFGroup(no_neurons=cfg.no_inh, group_label='I', params=cfg.neuron_params)]
+neurons = [LIFGroup(no_neurons=cfg.no_exc, group_label='E', params=cfg.exc_neuron_params),
+           LIFGroup(no_neurons=cfg.no_inh, group_label='I', params=cfg.inh_neuron_params)]
 
 # Exc to exc:  cols from, rows to
 #    |   A       B       N
@@ -90,11 +90,11 @@ s_StimA2A.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_A, cfg.no_stim_A)))
 s_StimB2B = SynapseGroup('stimB', 'E[240:480]', cfg.synapse_params)
 s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_B, cfg.no_stim_B)))
 
-synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
+synapses = [s_Noise2E, s_Noise2I]
 # synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 #%% Build Neural Circuit
 params = {'dt': cfg.dt,
-          'sim_duration': 1}
+          'sim_duration': cfg.sim_duration}
 wang_nc = NeuralCircuit(neurons, synapses, stimulus, params)
 
 #%% Simulation
@@ -109,4 +109,9 @@ if np.sum(op_spikes):
     op_train.raster_plot()
 
 #%%
-wang_nc.problem.stimuli['noiseE'].raster_plot(title="noiseE")
+# wang_nc.problem.stimuli['noiseE'].raster_plot(title="noiseE")
+
+#%%
+# I_syn = np.array(wang_nc.problem.I_syn_hist)
+# plt.figure()
+# plt.plot(I_syn[4])

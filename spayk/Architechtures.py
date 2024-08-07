@@ -47,7 +47,7 @@ class NeuralCircuit(SpaykCore):
        self.stimulus = stimulus
        
        self.codegen.analyze_network(neurons, synapses, stimulus, params)
-       self.code_as_string = self.codegen.make_sysofodes(neurons, synapses, stimulus)
+       self.code_as_string = self.codegen.write_equations(neurons, synapses, stimulus)
     
         
 class NeuralNetwork:

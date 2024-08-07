@@ -58,10 +58,10 @@ class SpikeTrain:
 
         plt.scatter(spike_loc[:,1], spike_loc[:,0], s=2, color=c)
         
-        yticks = range(min(spike_loc[:,0]), max(spike_loc[:,0]) + 1)
-        ax.set_yticks(yticks)
+        # yticks = range(min(spike_loc[:,0]), max(spike_loc[:,0]) + 1)
+        # ax.set_yticks(yticks)
         
-        ax.set_xlim([0,10000])
+        # ax.set_xlim([0,10000])
         
     def firing_rates(self):
         t_start, t_stop, dt = self.time_params

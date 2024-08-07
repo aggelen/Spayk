@@ -8,6 +8,8 @@ Created on Sun Jul 21 12:03:16 2024
 
 class Wang2002Config:
     dt = 0.1e-3
+    sim_duration = 1
+    
     no_neurons = 2000
     no_exc = 1600
     no_A = 240
@@ -23,10 +25,10 @@ class Wang2002Config:
     
     freq_noise_E = 2.4
     freq_noise_I = 2.4
-    freq_stim_A = 15
-    freq_stim_B = 30
+    freq_stim_A = 5
+    freq_stim_B = 10
     
-    stim_time_params = (0, 1, dt)
+    stim_time_params = (0, sim_duration, dt)
     
     #%% 
     assert(no_A+no_B+no_N == no_exc)
@@ -49,17 +51,18 @@ class Wang2002Config:
     REF_E = 2.0e-3  # refractory periodof excitatory neurons
     REF_I = 1.0e-3  # refractory period of inhibitory neurons
     
-    # exc_neuron_params = {'VE': VE, 'VI': VI, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_E, 'GL': GL_E, 'TREF': REF_E}
-    neuron_params = {'VE': VE, 'VI': VI, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_E, 'GL': GL_E, 'TREF': REF_E}
+    exc_neuron_params = {'VEI': VE, 'VE': VE, 'VI': VI, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_E, 'GL': GL_E, 'TREF': REF_E}
+    inh_neuron_params = {'VEI': VI, 'VE': VE, 'VI': VI, 'VL': VL, 'VT': VT, 'VR': VR, 'CM': CM_I, 'GL': GL_I, 'TREF': REF_I}
     
-    g_ampa_ext2exc = 2.1*1e-9  # external -> excitatory (AMPA)
+    
+    g_ampa_ext2exc = 2.1e-9  # external -> excitatory (AMPA)
     g_ampa_ext2inh = 1.62*1e-9  # external -> inhibitory neurons (AMPA)
-    g_ampa_exc2exc = 0.05*1e-9 / no_exc * 1600  # excitatory -> excitatory neurons (AMPA)
-    g_ampa_exc2inh = 0.04*1e-9 / no_exc * 1600  # excitatory -> inhibitory neurons (AMPA)
-    g_nmda_exc2exc = 0.165*1e-9 / no_exc * 1600  # excitatory -> excitatory neurons (NMDA)
-    g_nmda_exc2inh = 0.13*1e-9 / no_exc * 1600  # excitatory -> inhibitory neurons (NMDA)
-    g_gaba_inh2exc = 1.3*1e-9 / no_inh * 400  # inhibitory -> excitatory neurons (GABA)
-    g_gaba_inh2inh = 1.0*1e-9 / no_inh * 400  # inhibitory -> inhibitory neurons (GABA)
+    g_ampa_exc2exc = 0.05*1e-4 / no_exc * 1600  # excitatory -> excitatory neurons (AMPA)
+    g_ampa_exc2inh = 0.04*1e-4 / no_exc * 1600  # excitatory -> inhibitory neurons (AMPA)
+    g_nmda_exc2exc = 0.165*1e-4 / no_exc * 1600  # excitatory -> excitatory neurons (NMDA)
+    g_nmda_exc2inh = 0.13*1e-4 / no_exc * 1600  # excitatory -> inhibitory neurons (NMDA)
+    g_gaba_inh2exc = 1.3*1e-4 / no_inh * 400  # inhibitory -> excitatory neurons (GABA)
+    g_gaba_inh2inh = 1.0*1e-4 / no_inh * 400  # inhibitory -> inhibitory neurons (GABA)
  
     synapse_params = {'tau_AMPA': 2.0e-3,
                       'tau_NMDA_rise': 2.0e-3,
