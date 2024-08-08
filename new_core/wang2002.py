@@ -24,11 +24,53 @@ from experiment_config_wang import Wang2002Config as cfg
 
 from spayk.Stimuli import PoissonActivity, SpikeTrain
 
+#%% Stim on the paper
+resample_period = 50   # every 50 ms
+c = 12.8
+mu_0 = 40
+sigma = 4
+
+def mean_stimulus(mu_0, coherence):
+    ro_a = mu_0 / 100
+    ro_b = mu_0 / 100
+    mu_a = mu_0 + ro_a*coherence
+    mu_b = mu_0 - ro_b*coherence
+    return mu_a, mu_b
+
+def sample_stimulus(mu_a, mu_b, sigma, resample_period=50e-3, dt=cfg.dt):
+    #every 50ms >> resample
+    sa = np.random.normal(mu_a, sigma)
+    sb = np.random.normal(mu_b, sigma)
+    
+    return np.full(int(resample_period/dt), sa), np.full(int(resample_period/dt), sb)
+
+mu_a, mu_b = mean_stimulus(mu_0, c)
+
+stim_a = []
+stim_b = []
+
+for i in range(0,int(int(cfg.sim_duration*1e3)/resample_period)):
+    a, b = sample_stimulus(mu_a, mu_b, sigma)
+    stim_a.append(a)
+    stim_b.append(b)
+
+stim_a, stim_b = np.hstack(stim_a), np.hstack(stim_b)
+
+stim_a[:int(len(stim_a)/2)] = 0.0
+stim_b[:int(len(stim_a)/2)] = 0.0
+
+plt.figure()
+plt.plot(stim_a)
+plt.plot(stim_b)
+plt.xlabel('Time (ms)')
+plt.ylabel('Sample Stim')
+plt.legend(['pop_a', 'pop_b'])
+
 #%% Stimulus
 stimulus = [PoissonActivity(cfg.no_noise_E, cfg.freq_noise_E, cfg.stim_time_params,'noiseE'),
             PoissonActivity(cfg.no_noise_I, cfg.freq_noise_I, cfg.stim_time_params, 'noiseI'),
-            PoissonActivity(cfg.no_stim_A, cfg.freq_stim_A, cfg.stim_time_params, 'stimA'),
-            PoissonActivity(cfg.no_stim_B, cfg.freq_stim_B, cfg.stim_time_params,'stimB')]
+            PoissonActivity(cfg.no_stim_A, stim_a, cfg.stim_time_params, 'stimA'),
+            PoissonActivity(cfg.no_stim_B, stim_b, cfg.stim_time_params,'stimB')]
 
 #%% Neurons
 neurons = [LIFGroup(no_neurons=cfg.no_exc, group_label='E', params=cfg.exc_neuron_params),
@@ -90,7 +132,9 @@ s_StimA2A.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_A, cfg.no_stim_A)))
 s_StimB2B = SynapseGroup('stimB', 'E[240:480]', cfg.synapse_params)
 s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_B, cfg.no_stim_B)))
 
-synapses = [s_Noise2E, s_Noise2I]
+# synapses = [s_Noise2E, s_Noise2I]
+synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
+# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E]
 # synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 #%% Build Neural Circuit
 params = {'dt': cfg.dt,
@@ -102,11 +146,24 @@ wang_nc.keep_alive()
 
 #%% Output Spikes
 op_spikes = np.array(wang_nc.problem.output_spikes).T
+spike_loc_A = np.argwhere(op_spikes[:240])
+spike_loc_B = np.argwhere(op_spikes[240:480])
 op_train = SpikeTrain(op_spikes, [0, 1, cfg.dt])
 
 print("\nFiring Rate Op: {}\n".format(np.sum(op_spikes, 1)))
 if np.sum(op_spikes):
     op_train.raster_plot()
+    
+#%%
+fig, axs = plt.subplots(2, 1, sharex=True, layout='constrained', gridspec_kw={'height_ratios': [1, 1]})
+axs[0].plot(spike_loc_A[:,1], spike_loc_A[:,0], '.', markersize=2, color='darkred')
+axs[0].set(ylabel='population A', ylim=(0, 240))
+
+axs[1].plot(spike_loc_B[:,1], spike_loc_B[:,0], '.', markersize=2, color='darkblue')
+axs[1].set(ylabel='population B', ylim=(0, 240))
+
+# plt.figure()
+# plt.plot(SME2I.t / ms, SME2I.i, '.', markersize=2, color='darkred')
 
 #%%
 # wang_nc.problem.stimuli['noiseE'].raster_plot(title="noiseE")
