@@ -38,8 +38,8 @@ class Problem:
 	def __init__(self):
 		#%% Class params
 		self.dt = 0.0001
-		self.tsim = 0.5
-		self.output_spikes = np.empty((5000,2000))
+		self.tsim = 0.2
+		self.output_spikes = np.empty((2000,2000))
 		self.stim = None
 		#%% >>>>>>>>> lif variables
 		self.V = -55e-3*np.ones(2000)
@@ -65,6 +65,8 @@ np.full(400, 2e-10)])
 		self.s_AMPA_EXT__CONN_1 = np.zeros((400,1000))
 		self.s_AMPA_EXT__CONN_2 = np.zeros((240,240))
 		self.s_AMPA_EXT__CONN_3 = np.zeros((240,240))
+		self.s_AMPA__CONN_4 = np.zeros((1600,1600))
+		self.s_AMPA__CONN_5 = np.zeros((400,1600))
 		self.runtime_path = '/home/gelenag/Dev/Spayk/new_core/first_run'
 		self.gW = self.load_pickle('{}/gW_dict.pickle'.format(self.runtime_path))
 
@@ -76,38 +78,51 @@ np.full(400, 2e-10)])
 		# noiseE ---AMPA_EXT---> E
 		self.d_s_AMPA_EXT__CONN_0 = (-self.s_AMPA_EXT__CONN_0 / 0.002) 
 		self.s_AMPA_EXT__CONN_0 = self.s_AMPA_EXT__CONN_0 + self.d_s_AMPA_EXT__CONN_0*self.dt
-		self.s_AMPA_EXT__CONN_0 = self.s_AMPA_EXT__CONN_0 + self.stim.poisson_generator_CONN_0() 
-		wj = self.gW[0][0]*np.multiply(self.gW[0][1], self.s_AMPA_EXT__CONN_0)
-		self.I_syn[0:1600] = self.I_syn[0:1600] + (self.V-self.VE)[0:1600]*np.sum(wj, axis=1) 
+		self.s_AMPA_EXT__CONN_0 = self.s_AMPA_EXT__CONN_0 + self.gW[0][0]*self.stim.poisson_generator_CONN_0() 
+		wj = np.multiply(self.gW[0][1], self.s_AMPA_EXT__CONN_0)
+		self.I_syn[0:1600] = self.I_syn[0:1600] + np.einsum('i,ij->i', (self.V-self.VE)[0:1600], wj) 
 	def integrate_CONN_1(self):
 		# noiseI ---AMPA_EXT---> I
 		self.d_s_AMPA_EXT__CONN_1 = (-self.s_AMPA_EXT__CONN_1 / 0.002) 
 		self.s_AMPA_EXT__CONN_1 = self.s_AMPA_EXT__CONN_1 + self.d_s_AMPA_EXT__CONN_1*self.dt
-		self.s_AMPA_EXT__CONN_1 = self.s_AMPA_EXT__CONN_1 + self.stim.poisson_generator_CONN_1() 
-		wj = self.gW[1][0]*np.multiply(self.gW[1][1], self.s_AMPA_EXT__CONN_1)
-		self.I_syn[1600:2000] = self.I_syn[1600:2000] + (self.V-self.VE)[1600:2000]*np.sum(wj, axis=1) 
+		self.s_AMPA_EXT__CONN_1 = self.s_AMPA_EXT__CONN_1 + self.gW[1][0]*self.stim.poisson_generator_CONN_1() 
+		wj = np.multiply(self.gW[1][1], self.s_AMPA_EXT__CONN_1)
+		self.I_syn[1600:2000] = self.I_syn[1600:2000] + np.einsum('i,ij->i', (self.V-self.VE)[1600:2000], wj) 
 	def integrate_CONN_2(self):
 		# stimA ---AMPA_EXT_Subgroup_E---> [0:240]
 		self.d_s_AMPA_EXT__CONN_2 = (-self.s_AMPA_EXT__CONN_2 / 0.002)
 		self.s_AMPA_EXT__CONN_2 = self.s_AMPA_EXT__CONN_2 + self.d_s_AMPA_EXT__CONN_2*self.dt
-		self.s_AMPA_EXT__CONN_2 = self.s_AMPA_EXT__CONN_2 + self.stim.poisson_generator_CONN_2() 
-		wj = self.gW[2][0]*np.multiply(self.gW[2][1], self.s_AMPA_EXT__CONN_2)
-		self.I_syn[0:1600][0:240] = self.I_syn[0:1600][0:240] + (self.V-self.VE)[0:1600][0:240]*np.sum(wj, axis=1) 
+		self.s_AMPA_EXT__CONN_2 = self.s_AMPA_EXT__CONN_2 + self.gW[2][0]*self.stim.poisson_generator_CONN_2() 
+		wj = np.multiply(self.gW[2][1], self.s_AMPA_EXT__CONN_2)
+		self.I_syn[0:1600][0:240] = self.I_syn[0:1600][0:240] + np.einsum('i,ij->i', (self.V-self.VE)[0:1600][0:240], wj) 
 	def integrate_CONN_3(self):
 		# stimB ---AMPA_EXT_Subgroup_E---> [240:480]
 		self.d_s_AMPA_EXT__CONN_3 = (-self.s_AMPA_EXT__CONN_3 / 0.002)
 		self.s_AMPA_EXT__CONN_3 = self.s_AMPA_EXT__CONN_3 + self.d_s_AMPA_EXT__CONN_3*self.dt
-		self.s_AMPA_EXT__CONN_3 = self.s_AMPA_EXT__CONN_3 + self.stim.poisson_generator_CONN_3() 
-		wj = self.gW[3][0]*np.multiply(self.gW[3][1], self.s_AMPA_EXT__CONN_3)
-		self.I_syn[0:1600][240:480] = self.I_syn[0:1600][240:480] + (self.V-self.VE)[0:1600][240:480]*np.sum(wj, axis=1) 
+		self.s_AMPA_EXT__CONN_3 = self.s_AMPA_EXT__CONN_3 + self.gW[3][0]*self.stim.poisson_generator_CONN_3() 
+		wj = np.multiply(self.gW[3][1], self.s_AMPA_EXT__CONN_3)
+		self.I_syn[0:1600][240:480] = self.I_syn[0:1600][240:480] + np.einsum('i,ij->i', (self.V-self.VE)[0:1600][240:480], wj) 
+	def integrate_CONN_4(self):
+		# E ---AMPA---> E
+		self.s_AMPA__CONN_4 = self.s_AMPA__CONN_4 + np.tile(self.last_spikes[0:1600], (1600,1))
+		self.d_s_AMPA__CONN_4 = (-self.s_AMPA__CONN_4 / 0.002) 
+		self.s_AMPA__CONN_4 = self.s_AMPA__CONN_4 + self.d_s_AMPA__CONN_4*self.dt
+		wj = self.gW[4][0]*np.multiply(self.gW[4][1], self.s_AMPA__CONN_4)
+		self.I_syn[0:1600] = self.I_syn[0:1600] + np.einsum('i,ij->i', (self.V-self.VE)[0:1600], wj) 
+	def integrate_CONN_5(self):
+		# E ---AMPA---> I
+		self.s_AMPA__CONN_5 = self.s_AMPA__CONN_5 + np.tile(self.last_spikes[0:1600], (400,1))
+		self.d_s_AMPA__CONN_5 = (-self.s_AMPA__CONN_5 / 0.002) 
+		self.s_AMPA__CONN_5 = self.s_AMPA__CONN_5 + self.d_s_AMPA__CONN_5*self.dt
+		wj = self.gW[5][0]*np.multiply(self.gW[5][1], self.s_AMPA__CONN_5)
+		self.I_syn[1600:2000] = self.I_syn[1600:2000] + np.einsum('i,ij->i', (self.V-self.VE)[1600:2000], wj) 
 	#%% firing control
 	def integrate_and_fire(self, time_idx):
 		is_in_rest = np.greater(self.t_ref, 0.0)
 		self.t_ref = np.where(is_in_rest, self.t_ref - self.dt, self.t_ref)
 
 		##% memb pot derivatives
-		d_V = (-self.GL*(self.V - (-70e-3)) - self.I_syn) / self.CM
-		self.d_V = np.where(is_in_rest, np.zeros(2000), d_V)
+		self.d_V = (-self.GL*(self.V - (-70e-3)) - self.I_syn) / self.CM
 		integrated_V = self.V + self.d_V*self.dt
 		self.V = np.where(np.logical_not(is_in_rest), integrated_V, self.V)
 		is_fired = np.greater_equal(self.V, self.VT)
@@ -123,6 +138,8 @@ np.full(400, 2e-10)])
 		self.integrate_CONN_1()
 		self.integrate_CONN_2()
 		self.integrate_CONN_3()
+		self.integrate_CONN_4()
+		self.integrate_CONN_5()
 		self.integrate_and_fire(time_idx)
 		self.stim.step()
 

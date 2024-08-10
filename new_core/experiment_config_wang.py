@@ -8,7 +8,7 @@ Created on Sun Jul 21 12:03:16 2024
 
 class Wang2002Config:
     dt = 0.1e-3
-    sim_duration = 0.5
+    sim_duration = 0.2
     
     no_neurons = 2000
     no_exc = 1600
@@ -25,8 +25,8 @@ class Wang2002Config:
     
     freq_noise_E = 2.4
     freq_noise_I = 2.4
-    freq_stim_A = 5
-    freq_stim_B = 10
+    # freq_stim_A = 5
+    # freq_stim_B = 10
     
     stim_time_params = (0, sim_duration, dt)
     
@@ -57,10 +57,13 @@ class Wang2002Config:
     
     g_ampa_ext2exc = 2.1e-9  # external -> excitatory (AMPA)
     g_ampa_ext2inh = 1.62*1e-9  # external -> inhibitory neurons (AMPA)
+    
     g_ampa_exc2exc = 0.05*1e-9 / no_exc * 1600  # excitatory -> excitatory neurons (AMPA)
     g_ampa_exc2inh = 0.04*1e-9 / no_exc * 1600  # excitatory -> inhibitory neurons (AMPA)
+    
     g_nmda_exc2exc = 0.165*1e-9 / no_exc * 1600  # excitatory -> excitatory neurons (NMDA)
     g_nmda_exc2inh = 0.13*1e-9 / no_exc * 1600  # excitatory -> inhibitory neurons (NMDA)
+    
     g_gaba_inh2exc = 1.3*1e-9 / no_inh * 400  # inhibitory -> excitatory neurons (GABA)
     g_gaba_inh2inh = 1.0*1e-9 / no_inh * 400  # inhibitory -> inhibitory neurons (GABA)
  

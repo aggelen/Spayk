@@ -356,26 +356,31 @@ class CodeGenerator:
             else:
                 self.code_string += "np.full({}, {}), \n".format(v.no_neurons, v.params['CM'])  
                 
-                
-        for conn_id, conn in enumerate(self.synapse_dict['connection_list']):
-            no_neurons_target = self.stimuli_dict[conn['to']].no_neurons
-            no_neurons_source = self.stimuli_dict[conn['from']].no_neurons
-            if conn['channel'] == 'AMPA':
-                # self.code_string += "\t\tself.s_AMPA__CONN_{} = np.zeros(({},{}))\n".format(conn_id, no_neurons_target, no_neurons_source)
-                self.write_equality("\t\tself.s_AMPA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
-            if conn['channel'] == 'NMDA':
-                self.write_equality("\t\tself.s_NMDA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
-                self.write_equality("\t\tself.x_NMDA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
-            if conn['channel'] == 'GABA':
-                self.write_equality("\t\tself.s_GABA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
-            if conn['channel'] == 'AMPA_EXT':
-                if conn['subgroup_operation']:
-                    st = int(conn['target_subgroup'].replace('[','').replace(']','').split(':')[0])
-                    end = int(conn['target_subgroup'].replace('[','').replace(']','').split(':')[1])
-                    no_neurons = end-st
-                    self.write_equality("\t\tself.s_AMPA_EXT__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons, no_neurons_source)
-                else:
-                    self.write_equality("\t\tself.s_AMPA_EXT__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
+        self.code_string += "\t\tself.s_AMPA = np.zeros(2000)\n"
+        self.code_string += "\t\tself.s_AMPA_ext = np.zeros(2000)\n"
+        
+        self.code_string += "\t\tself.ds_AMPA = np.zeros(2000)\n"
+        self.code_string += "\t\tself.ds_AMPA_ext = np.zeros(2000)\n"
+        
+        # for conn_id, conn in enumerate(self.synapse_dict['connection_list']):
+        #     no_neurons_target = self.stimuli_dict[conn['to']].no_neurons
+        #     no_neurons_source = self.stimuli_dict[conn['from']].no_neurons
+        #     if conn['channel'] == 'AMPA':
+        #         # self.code_string += "\t\tself.s_AMPA__CONN_{} = np.zeros(({},{}))\n".format(conn_id, no_neurons_target, no_neurons_source)
+        #         self.write_equality("\t\tself.s_AMPA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
+        #     if conn['channel'] == 'NMDA':
+        #         self.write_equality("\t\tself.s_NMDA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
+        #         self.write_equality("\t\tself.x_NMDA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
+        #     if conn['channel'] == 'GABA':
+        #         self.write_equality("\t\tself.s_GABA__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
+        #     if conn['channel'] == 'AMPA_EXT':
+        #         if conn['subgroup_operation']:
+        #             st = int(conn['target_subgroup'].replace('[','').replace(']','').split(':')[0])
+        #             end = int(conn['target_subgroup'].replace('[','').replace(']','').split(':')[1])
+        #             no_neurons = end-st
+        #             self.write_equality("\t\tself.s_AMPA_EXT__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons, no_neurons_source)
+        #         else:
+        #             self.write_equality("\t\tself.s_AMPA_EXT__CONN_{} = np.zeros(({},{}))\n", conn_id, no_neurons_target, no_neurons_source)
                     
         self.code_string += "\t\tself.runtime_path = '{}'\n".format(self.runtime_path)
         self.code_string += "\t\tself.gW = self.load_pickle('{}/gW_dict.pickle'.format(self.runtime_path))\n\n"
@@ -399,140 +404,85 @@ class CodeGenerator:
                 else:
                     tau_ampa = conn['synapse_params']['tau_AMPA']
                     rnge = self.neuron_group_ranges[conn['to']]
-                    rnge_f = self.neuron_group_ranges[conn['from']]
                     
                     self.code_string += "\t\t# {} ---AMPA---> {}\n".format(conn['from'], conn['to'])
                     
-                   
-                    self.code_string += "\t\tself.s_AMPA__CONN_{} = self.s_AMPA__CONN_{} + np.tile(self.last_spikes{}, ({},1))\n".format(conn_id,
-                                                                                                                                           conn_id,
+                    rnge_f = self.neuron_group_ranges[conn['from']]
+                    self.code_string += "\t\tself.ds_AMPA__CONN_{} =  np.tile(self.last_spikes{}, ({},1))\n".format(       conn_id,
                                                                                                                                            rnge_f,
                                                                                                                                            no_target_neurons)
 
-                    self.code_string += "\t\tself.d_s_AMPA__CONN_{} = (-self.s_AMPA__CONN_{} / {}) \n".format(conn_id,
-                                                                                                                      conn_id,
-                                                                                                                      tau_ampa)
+                    # self.code_string += "\t\tself.d_s_AMPA__CONN_{} = (-self.s_AMPA__CONN_{} / {}) \n".format(conn_id,
+                    #                                                                                                   conn_id,
+                    #                                                                                                   tau_ampa)
                     
-                    self.code_string += "\t\tself.s_AMPA__CONN_{} = self.s_AMPA__CONN_{} + self.d_s_AMPA__CONN_{}*self.dt\n".format(conn_id, conn_id, conn_id)
+                    self.code_string += "\t\tself.s_AMPA__CONN_{} = self.s_AMPA__CONN_{} + (-self.s_AMPA__CONN_{} / {})*self.dt\n".format(conn_id, conn_id, conn_id, tau_ampa)
             
                     
                     
                     self.write_equality("\t\twj = self.gW[{}][0]*np.multiply(self.gW[{}][1], self.s_AMPA__CONN_{})\n",
-                                         conn_id, conn_id, conn_id)
-                    # self.write_equality("\t\tself.I_syn{} = self.I_syn{} + (self.V-self.VE){}*np.sum(wj, axis=1) \n",
-                    #                     rnge, rnge, rnge)
-                    self.write_equality("\t\tself.I_syn{} = self.I_syn{} + np.einsum('i,ij->i', (self.V-self.VE){}, wj) \n",
+                                        conn_id, conn_id, conn_id)
+                    self.write_equality("\t\tself.I_syn{} = self.I_syn{} + (self.V-self.VE){}*np.sum(wj, axis=1) \n",
                                         rnge, rnge, rnge)
 
-            if conn['channel'] == 'NMDA':
-                if conn['subgroup_operation']:
-                    raise NotImplementedError()
-                else:
-                    tau_NMDA_rise = conn['synapse_params']['tau_NMDA_rise']
-                    tau_NMDA_decay = conn['synapse_params']['tau_NMDA_decay']
-
-                    self.code_string += "\t\t# {} ---NMDA---> {}\n".format(conn['from'], conn['to'])
-                    self.code_string += "\t\tself.d_x_NMDA__CONN_{} = (-self.x_NMDA__CONN_{} / {})\n".format(conn_id,
-                                                                                                            conn_id,
-                                                                                                            tau_NMDA_rise)
-
-                    self.code_string += "\t\tself.d_s_NMDA__CONN_{} = (-self.s_NMDA__CONN_{} / {}) + {}*self.x_NMDA__CONN_{}*(1 - self.s_NMDA__CONN_{}) \n".format(conn_id,
-                                                                                                                                           conn_id,
-                                                                                                                                           tau_NMDA_decay,
-                                                                                                                                           conn['synapse_params']['alpha'],
-                                                                                                                                           conn_id,
-                                                                                                                                           conn_id)
-                    self.code_string += "\t\tself.s_NMDA__CONN_{} = self.s_NMDA__CONN_{} + self.d_s_NMDA__CONN_{}*self.dt\n".format(conn_id, conn_id, conn_id)
-                    self.code_string += "\t\tself.x_NMDA__CONN_{} = self.x_NMDA__CONN_{} + self.d_x_NMDA__CONN_{}*self.dt\n".format(conn_id, conn_id, conn_id)
-                    
-                    rnge_f = self.neuron_group_ranges[conn['from']]
-                    
-                    self.code_string += "\t\tself.x_NMDA__CONN_{} = self.x_NMDA__CONN_{} + np.tile(self.last_spikes{}, ({},1))\n".format(conn_id,
-                                                                                                                                           conn_id,
-                                                                                                                                           rnge_f,
-                                                                                                                                           no_target_neurons)
-                    
-                    
-                    self.write_equality("\t\twj = self.gW[{}][0]*np.multiply(self.gW[{}][1], self.s_NMDA__CONN_{})\n",
-                                        conn_id, conn_id, conn_id)
-        
-                    self.write_equality("\t\tself.I_syn{} = self.I_syn{} + (self.V-self.VE){}*(np.sum(wj, axis=1))/(1 + ({}*np.exp(-0.062*self.V{})/3.57)) \n",
-                                        rnge, rnge, rnge, conn['synapse_params']['C_Mg'], rnge)
-                    
-            if conn['channel'] == 'GABA':
-                if conn['subgroup_operation']:
-                    raise NotImplementedError()
-                else:
-                    tau_gaba = conn['synapse_params']['tau_GABA']
-                    rnge = self.neuron_group_ranges[conn['to']]
-                    
-                    self.code_string += "\t\t# {} ---GABA---> {}\n".format(conn['from'], conn['to'])
-                    
-                    
-                    
-                    self.code_string += "\t\tself.d_s_GABA__CONN_{} = (-self.s_GABA__CONN_{} / {}) \n".format(conn_id,
-                                                                                                                      conn_id,
-                                                                                                                      tau_gaba)
-                    
-                    self.code_string += "\t\tself.s_GABA__CONN_{} = self.s_GABA__CONN_{} + self.d_s_GABA__CONN_{}*self.dt\n".format(conn_id, conn_id, conn_id)
-                    
-                    rnge_f = self.neuron_group_ranges[conn['from']]
-                    self.code_string += "\t\tself.s_GABA__CONN_{} = self.s_GABA__CONN_{} + np.tile(self.last_spikes{}, ({},1))\n".format(conn_id,
-                                                                                                                                           conn_id,
-                                                                                                                                           rnge_f,
-                                                                                                                                           no_target_neurons)
-                    
-                    self.write_equality("\t\twj = self.gW[{}][0]*np.multiply(self.gW[{}][1], self.s_GABA__CONN_{})\n",
-                                        conn_id, conn_id, conn_id)
-                    self.write_equality("\t\tself.I_syn{} = self.I_syn{} + (self.V-self.VI){}*np.sum(wj, axis=1) \n",
-                                        rnge, rnge, rnge)
+           
                     
             if conn['channel'] == 'AMPA_EXT':
                 tau_ampa_ext = conn['synapse_params']['tau_AMPA']
                 if conn['subgroup_operation']:
                     self.code_string += "\t\t# {} ---AMPA_EXT_Subgroup_{}---> {}\n".format(conn['from'], conn['to'], conn['target_subgroup'])
-                    self.code_string += "\t\tself.d_s_AMPA_EXT__CONN_{} = (-self.s_AMPA_EXT__CONN_{} / {})\n".format(conn_id,
-                                                                                                                     conn_id,
-                                                                                                                     tau_ampa_ext)
-                    self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + self.d_s_AMPA_EXT__CONN_{}*self.dt\n".format(conn_id, conn_id, conn_id)
                     
                     st = int(conn['target_subgroup'].replace('[','').replace(']','').split(':')[0])
                     end = int(conn['target_subgroup'].replace('[','').replace(']','').split(':')[1])
                     no_neurons = end-st
                     rnge = self.neuron_group_ranges[conn['to']]
                     
-                    self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + self.gW[{}][0]*self.stim.poisson_generator_CONN_{}() \n".format(conn_id,
-                                                                                                                                                   conn_id, 
-                                                                                                                                                   conn_id,
+                    self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + self.stim.poisson_generator_CONN_{}() \n".format(conn_id,
+                                                                                                                                                    conn_id,
                                                                                                                                                     conn_id)
                     
+                    # self.code_string += "\t\tself.d_s_AMPA_EXT__CONN_{} = (-self.s_AMPA_EXT__CONN_{} / {})\n".format(conn_id,
+                    #                                                                                                  conn_id,
+                    #                                                                                                  tau_ampa_ext)
+                    
+                    self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + (-self.s_AMPA_EXT__CONN_{} / {})*self.dt\n".format(conn_id, conn_id, conn_id,
+                                                                                                                                                      tau_ampa_ext)
+                    
+                    
+                    
                     rnge = self.neuron_group_ranges[conn['to']]
-                    self.write_equality("\t\twj = np.multiply(self.gW[{}][1], self.s_AMPA_EXT__CONN_{})\n",
-                                        conn_id, conn_id)
-                    self.write_equality("\t\tself.I_syn{}{} = self.I_syn{}{} + np.einsum('i,ij->i', (self.V-self.VE){}{}, wj) \n",
+                    self.write_equality("\t\twj = self.gW[{}][0]*np.multiply(self.gW[{}][1], self.s_AMPA_EXT__CONN_{})\n",
+                                        conn_id, conn_id, conn_id)
+                    self.write_equality("\t\tself.I_syn{}{} = self.I_syn{}{} + (self.V-self.VE){}{}*np.sum(wj, axis=1) \n",
                                         rnge, conn['target_subgroup'], rnge, conn['target_subgroup'], rnge, conn['target_subgroup'])
-                    
                 else:
-                    self.code_string += "\t\t# {} ---AMPA_EXT---> {}\n".format(conn['from'], conn['to'])
-                    self.code_string += "\t\tself.d_s_AMPA_EXT__CONN_{} = (-self.s_AMPA_EXT__CONN_{} / {}) \n".format(conn_id,
-                                                                                                                      conn_id,
-                                                                                                                      tau_ampa_ext)
                     
-                    self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + self.d_s_AMPA_EXT__CONN_{}*self.dt\n".format(conn_id, conn_id, conn_id)
+                    self.code_string += "\t\t# {} ---AMPA_EXT---> {}\n".format(conn['from'], conn['to'])
+                    
+                    
+                    # self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + self.stim.poisson_generator_CONN_{}() \n".format(conn_id,
+                    #                                                                                                                       conn_id,
+                    #                                                                                                                       conn_id)
+                    
+                    # self.code_string += "\t\tself.d_s_AMPA_EXT__CONN_{} = (-self.s_AMPA_EXT__CONN_{} / {}) \n".format(conn_id,
+                    #                                                                                                   conn_id,
+                    #                                                                                                   tau_ampa_ext)
+                    
+                    # self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + (-self.s_AMPA_EXT__CONN_{} / {})*self.dt\n".format(conn_id, conn_id, conn_id,
+                    #                                                                                                                                   tau_ampa_ext)
                     # self.code_string += "\t\tself.sAmpa_hist.append(self.s_AMPA_EXT__CONN_{})\n".format(conn_id)
                     
-                    self.code_string += "\t\tself.s_AMPA_EXT__CONN_{} = self.s_AMPA_EXT__CONN_{} + self.gW[{}][0]*self.stim.poisson_generator_CONN_{}() \n".format(conn_id,
-                                                                                                                                            conn_id,
-                                                                                                                                            conn_id,
-                                                                                                                                            conn_id)
+                    
                     
                     rnge = self.neuron_group_ranges[conn['to']]
-                    self.write_equality("\t\twj = np.multiply(self.gW[{}][1], self.s_AMPA_EXT__CONN_{})\n",
-                                        conn_id, conn_id)
+                    self.write_equality("\t\twj = self.gW[{}][0]*np.multiply(self.gW[{}][1], self.stim.poisson_generator_CONN_{}() )\n",
+                                        conn_id, conn_id, conn_id, conn_id)
+                    
+                    self.write_equality("\t\tself.ds_AMPA_ext{} = np.sum(wj, axis=1) \n",
+                                        rnge, rnge)
+                    
                     # self.write_equality("\t\tself.I_syn{} = self.I_syn{} + (self.V-self.VE){}*np.sum(wj, axis=1) \n",
                     #                     rnge, rnge, rnge)
-                    self.write_equality("\t\tself.I_syn{} = self.I_syn{} + np.einsum('i,ij->i', (self.V-self.VE){}, wj) \n",
-                                        rnge, rnge, rnge)
                     
     def define_integrate_and_fire_function(self):
         #%% integrate and fire function
@@ -543,8 +493,8 @@ class CodeGenerator:
         self.code_string += "\t\tself.t_ref = np.where(is_in_rest, self.t_ref - self.dt, self.t_ref)\n\n"
         
         self.code_string += "\t\t##% memb pot derivatives\n"
-        self.code_string += "\t\tself.d_V = (-self.GL*(self.V - (-70e-3)) - self.I_syn) / self.CM\n"
-        # self.code_string += "\t\tself.d_V = np.where(is_in_rest, np.zeros({}), d_V)\n".format(self.total_no_of_neurons)
+        self.code_string += "\t\td_V = (-self.GL*(self.V - (-70e-3)) - self.I_syn) / self.CM\n"
+        self.code_string += "\t\tself.d_V = np.where(is_in_rest, np.zeros({}), d_V)\n".format(self.total_no_of_neurons)
 
         
         self.code_string += "\t\tintegrated_V = self.V + self.d_V*self.dt\n"
@@ -561,6 +511,8 @@ class CodeGenerator:
         #%% generate step func
         self.code_string += "\t#%% forward func\n"
         self.code_string += "\tdef forward(self, time_idx):\n"
+        
+        self.code_string += "\t\tself.s_AMPA_ext = self.s_AMPA_ext + self.ds_AMPA_ext*self.dt\n"
 
         # self.code_string += "\t\tself.calculate_dxdt_all()\n"
         self.code_string += "\t\tself.I_syn = np.zeros({})\n".format(self.total_no_of_neurons)
@@ -568,6 +520,10 @@ class CodeGenerator:
         
         for conn_id, conn in enumerate(self.synapse_dict['connection_list']):
             self.write_equality("\t\tself.integrate_CONN_{}()\n", conn_id)
+            
+       
+        
+        self.write_equality("\t\tself.I_syn = self.I_syn + (self.V-self.VE)*self.s_AMPA_ext \n", )
         
         self.code_string += "\t\tself.integrate_and_fire(time_idx)\n"
         # self.code_string += "\t\tself.data_acquisition(time_idx)\n"

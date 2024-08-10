@@ -56,8 +56,13 @@ for i in range(0,int(int(cfg.sim_duration*1e3)/resample_period)):
 
 stim_a, stim_b = np.hstack(stim_a), np.hstack(stim_b)
 
-stim_a[:int(len(stim_a)/2)] = 0.0
-stim_b[:int(len(stim_a)/2)] = 0.0
+stim_a[:] = 0.0
+stim_b[:] = 0.0
+
+# stim_a[:int(len(stim_a)/4)] = 0.0
+# stim_b[:int(len(stim_a)/4)] = 0.0
+# stim_a[int(3*len(stim_b)/4):] = 0.0
+# stim_b[int(3*len(stim_b)/4):] = 0.0
 
 plt.figure()
 plt.plot(stim_a)
@@ -71,6 +76,9 @@ stimulus = [PoissonActivity(cfg.no_noise_E, cfg.freq_noise_E, cfg.stim_time_para
             PoissonActivity(cfg.no_noise_I, cfg.freq_noise_I, cfg.stim_time_params, 'noiseI'),
             PoissonActivity(cfg.no_stim_A, stim_a, cfg.stim_time_params, 'stimA'),
             PoissonActivity(cfg.no_stim_B, stim_b, cfg.stim_time_params,'stimB')]
+
+             # PoissonActivity(cfg.no_stim_A, stim_a/cfg.no_stim_A, cfg.stim_time_params, 'stimA'),
+             # PoissonActivity(cfg.no_stim_B, stim_b/cfg.no_stim_B, cfg.stim_time_params,'stimB')]
 
 #%% Neurons
 neurons = [LIFGroup(no_neurons=cfg.no_exc, group_label='E', params=cfg.exc_neuron_params),
@@ -93,7 +101,7 @@ WN = np.hstack([np.full((cfg.no_N, cfg.no_A), 1.0),
                 np.full((cfg.no_N, cfg.no_B), 1.0),
                 np.full((cfg.no_N, cfg.no_N), 1.0)])
 W_exc2exc = np.vstack([WA,WB,WN])
-np.fill_diagonal(W_exc2exc, 0.0)   # Each neuron receives inputs from all other neurons, but with structured synaptic weights.
+# np.fill_diagonal(W_exc2exc, 0.0)   # Each neuron receives inputs from all other neurons, but with structured synaptic weights.
 
 #%% Recurrent Synapses
 #                  0    1        2           3         4       5
@@ -101,19 +109,19 @@ np.fill_diagonal(W_exc2exc, 0.0)   # Each neuron receives inputs from all other 
 # E2E Synapses
 s_E2E = SynapseGroup('E', 'E', cfg.synapse_params)
 s_E2E.AMPA(gs=cfg.g_ampa_exc2exc, ws=W_exc2exc)
-s_E2E.NMDA(gs=cfg.g_nmda_exc2exc, ws=W_exc2exc)
+# s_E2E.NMDA(gs=cfg.g_nmda_exc2exc, ws=W_exc2exc)
 
 # E2I Synapses
 s_E2I = SynapseGroup('E', 'I', cfg.synapse_params)
 s_E2I.AMPA(gs=cfg.g_ampa_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
-s_E2I.NMDA(gs=cfg.g_nmda_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
+# s_E2I.NMDA(gs=cfg.g_nmda_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
 
 # I2E Synapses
 s_I2E = SynapseGroup('I', 'E', cfg.synapse_params)
 s_I2E.GABA(gs=cfg.g_gaba_inh2exc, ws=np.ones((cfg.no_exc, cfg.no_inh)))
 
 wI2I = np.ones((cfg.no_inh, cfg.no_inh))
-np.fill_diagonal(wI2I, 0.0)
+# np.fill_diagonal(wI2I, 0.0)
 
 # I2I Synapses
 s_I2I = SynapseGroup('I', 'I', cfg.synapse_params)
@@ -127,15 +135,21 @@ s_Noise2I = SynapseGroup('noiseI', 'I', cfg.synapse_params)
 s_Noise2I.AMPA_EXT(gs=cfg.g_ampa_ext2inh, ws=np.ones((cfg.no_inh, cfg.no_noise_I)))
 
 s_StimA2A = SynapseGroup('stimA', 'E[0:240]', cfg.synapse_params)
-s_StimA2A.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_A, cfg.no_stim_A)))
+W_one_to_one_240 = np.eye(240)
+s_StimA2A.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=W_one_to_one_240)
 
 s_StimB2B = SynapseGroup('stimB', 'E[240:480]', cfg.synapse_params)
-s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_B, cfg.no_stim_B)))
+s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=W_one_to_one_240)
+# s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_B, cfg.no_stim_B)))
 
 # synapses = [s_Noise2E, s_Noise2I]
-synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
-# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E]
+# synapses = [s_StimA2A, s_StimB2B]
+# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
+# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2I]
+synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I]
+# synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_StimA2A, s_StimB2B]
 # synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
+
 #%% Build Neural Circuit
 params = {'dt': cfg.dt,
           'sim_duration': cfg.sim_duration}
@@ -143,6 +157,19 @@ wang_nc = NeuralCircuit(neurons, synapses, stimulus, params)
 
 #%% Simulation
 wang_nc.keep_alive()
+
+#%%
+def population_firing_rates(spikes, dt, time_window, shift):
+    window_len = int(time_window / dt)
+    shift_len = int(shift / dt)
+    rates = []
+    stop = int(spikes.shape[1]-window_len)
+    shifts = np.arange(0, stop, shift_len)
+    for i in shifts:
+        windowed_spikes = spikes[:,i:i+window_len]
+        rates.append(np.sum(windowed_spikes)/time_window/spikes.shape[0])
+    
+    return np.array(rates)
 
 #%% Output Spikes
 op_spikes = np.array(wang_nc.problem.output_spikes).T
@@ -172,3 +199,10 @@ axs[1].set(ylabel='population B', ylim=(0, 240))
 # I_syn = np.array(wang_nc.problem.I_syn_hist)
 # plt.figure()
 # plt.plot(I_syn[4])
+
+#%%
+rate_E = population_firing_rates(op_spikes[:1600], cfg.dt, 50e-3, 5e-3)
+rate_I = population_firing_rates(op_spikes[1600:], cfg.dt, 50e-3, 5e-3)
+plt.figure()
+plt.plot(rate_E, color='darkred')
+plt.plot(rate_I, color='darkblue')
