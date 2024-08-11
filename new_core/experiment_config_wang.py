@@ -8,7 +8,7 @@ Created on Sun Jul 21 12:03:16 2024
 
 class Wang2002Config:
     dt = 0.1e-3
-    sim_duration = 0.2
+    sim_duration = 2
     
     no_neurons = 2000
     no_exc = 1600

@@ -56,13 +56,13 @@ for i in range(0,int(int(cfg.sim_duration*1e3)/resample_period)):
 
 stim_a, stim_b = np.hstack(stim_a), np.hstack(stim_b)
 
-stim_a[:] = 0.0
-stim_b[:] = 0.0
+# stim_a[:] = 0.0
+# stim_b[:] = 0.0
 
-# stim_a[:int(len(stim_a)/4)] = 0.0
-# stim_b[:int(len(stim_a)/4)] = 0.0
-# stim_a[int(3*len(stim_b)/4):] = 0.0
-# stim_b[int(3*len(stim_b)/4):] = 0.0
+stim_a[:int(len(stim_a)/4)] = 0.0
+stim_b[:int(len(stim_a)/4)] = 0.0
+stim_a[int(3*len(stim_b)/4):] = 0.0
+stim_b[int(3*len(stim_b)/4):] = 0.0
 
 plt.figure()
 plt.plot(stim_a)
@@ -101,7 +101,7 @@ WN = np.hstack([np.full((cfg.no_N, cfg.no_A), 1.0),
                 np.full((cfg.no_N, cfg.no_B), 1.0),
                 np.full((cfg.no_N, cfg.no_N), 1.0)])
 W_exc2exc = np.vstack([WA,WB,WN])
-# np.fill_diagonal(W_exc2exc, 0.0)   # Each neuron receives inputs from all other neurons, but with structured synaptic weights.
+np.fill_diagonal(W_exc2exc, 0.0)   # Each neuron receives inputs from all other neurons, but with structured synaptic weights.
 
 #%% Recurrent Synapses
 #                  0    1        2           3         4       5
@@ -109,19 +109,19 @@ W_exc2exc = np.vstack([WA,WB,WN])
 # E2E Synapses
 s_E2E = SynapseGroup('E', 'E', cfg.synapse_params)
 s_E2E.AMPA(gs=cfg.g_ampa_exc2exc, ws=W_exc2exc)
-# s_E2E.NMDA(gs=cfg.g_nmda_exc2exc, ws=W_exc2exc)
+s_E2E.NMDA(gs=cfg.g_nmda_exc2exc, ws=W_exc2exc)
 
 # E2I Synapses
 s_E2I = SynapseGroup('E', 'I', cfg.synapse_params)
 s_E2I.AMPA(gs=cfg.g_ampa_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
-# s_E2I.NMDA(gs=cfg.g_nmda_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
+s_E2I.NMDA(gs=cfg.g_nmda_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
 
 # I2E Synapses
 s_I2E = SynapseGroup('I', 'E', cfg.synapse_params)
 s_I2E.GABA(gs=cfg.g_gaba_inh2exc, ws=np.ones((cfg.no_exc, cfg.no_inh)))
 
 wI2I = np.ones((cfg.no_inh, cfg.no_inh))
-# np.fill_diagonal(wI2I, 0.0)
+np.fill_diagonal(wI2I, 0.0)
 
 # I2I Synapses
 s_I2I = SynapseGroup('I', 'I', cfg.synapse_params)
@@ -142,13 +142,14 @@ s_StimB2B = SynapseGroup('stimB', 'E[240:480]', cfg.synapse_params)
 s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=W_one_to_one_240)
 # s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=np.ones((cfg.no_B, cfg.no_stim_B)))
 
-# synapses = [s_Noise2E, s_Noise2I]
+# synapses = [s_Noise2E, s_Noise2I, s_E2E, s_E2I]
 # synapses = [s_StimA2A, s_StimB2B]
 # synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 # synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2I]
-synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I]
+# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I]
+# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I, s_I2E, s_I2I]
 # synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_StimA2A, s_StimB2B]
-# synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
+synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 
 #%% Build Neural Circuit
 params = {'dt': cfg.dt,
