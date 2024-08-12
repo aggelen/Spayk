@@ -310,9 +310,15 @@ class CodeGenerator:
         self.code_string += "\t\tself.s_GABA = np.zeros({})\n".format(self.total_no_of_neurons)
         self.code_string += "\t\tself.x_NMDA = np.zeros({})\n".format(self.total_no_of_neurons)
         self.code_string += "\t\tself.s_NMDA = np.zeros({})\n".format(self.total_no_of_neurons)
+        self.code_string += "\t\tself.ds_NMDA = np.zeros({})\n".format(self.total_no_of_neurons)
+        
+        self.code_string += "\t\tself.wj_NMDA = np.zeros({})\n".format(self.total_no_of_neurons)
+                
         self.code_string += "\t\tself.last_spikes_delayed = np.zeros({})\n".format(self.total_no_of_neurons)
         
-
+        self.code_string += "\t\tself.x_NMDA_hist = []  \n"
+        self.code_string += "\t\tself.s_NMDA_hist = []  \n"
+        self.code_string += "\t\tself.I_NMDA_hist = []  \n"
         self.code_string += "\t\t#%% channel states \n"
         
         self.code_string += "\t\tself.VE = np.hstack(["
@@ -397,10 +403,38 @@ class CodeGenerator:
                     rnge = self.neuron_group_ranges[conn['to']]
                     frange = self.neuron_group_ranges[conn['from']]
                     
-                    self.code_string += "\t\t# {} ---NMDA---> {}\n".format(conn['from'], conn['to'])                   
-                    # self.write_equality("\t\tself.x_NMDA{} += self.last_spikes_delayed{}\n", rnge, frange)  
-                    self.write_equality("\t\tself.x_NMDA{} += np.einsum('j,ij->i', self.last_spikes_delayed{}, np.ones_like(self.gW[{}][1])) \n", rnge, frange, conn_id)  
-                    self.write_equality("\t\tself.I_NMDA{} += np.einsum('i,ij->i', self.s_NMDA{}, self.gW[{}][1]*self.gW[{}][0]) \n", rnge, rnge, conn_id, conn_id)  
+                    self.code_string += "\t\t# {} ---NMDA---> {}\n".format(conn['from'], conn['to'])
+                    # self.code_string += "\t\tpass\n".format(conn['from'], conn['to'])
+                   
+                    
+                    # self.write_equality("\t\tself.x_NMDA{} += np.full_like(self.x_NMDA{}, np.sum(self.last_spikes_delayed{})) \n",  rnge, rnge, frange)
+                    # self.write_equality("\t\tself.x_NMDA{} +=  np.einsum('j,ij->i', self.last_spikes_delayed{}, np.eye({})) \n",  rnge, frange, conn['W'].shape[1])
+                    
+                    # self.write_equality("\t\tself.ds_NMDA{} = np.einsum('j,ij->i', (-self.s_NMDA{} / {}), self.gW[{}][1]*self.gW[{}][0]) \n",  rnge, 
+                    #                         frange, 
+                    #                         conn['synapse_params']['tau_NMDA_decay'], 
+                    #                         conn_id, conn_id)
+                    
+                    # self.write_equality("\t\tself.ds_NMDA{} += {}*self.x_NMDA{}*(1-self.s_NMDA{})\n", rnge, conn['synapse_params']['alpha'], rnge, rnge)
+                    
+                    # self.write_equality("\t\tself.ds_NMDA{} = np.einsum('j,ij->i', ((-self.s_NMDA{} / {}) + {}*self.x_NMDA{}*(1-self.s_NMDA{})), self.gW[{}][1]*self.gW[{}][0]) \n",  rnge, 
+                    #                         frange, 
+                    #                         conn['synapse_params']['tau_NMDA_decay'], 
+                    #                         conn['synapse_params']['alpha'],
+                    #                         frange,
+                    #                         frange,
+                    #                         conn_id, conn_id)
+                    
+                    # self.write_equality("\t\tself.x_NMDA{} += np.einsum('j,ij->i', self.last_spikes_delayed{}, np.ones_like(self.gW[{}][1])) \n", rnge, frange, conn_id)  
+                    # self.write_equality("\t\tself.wj_NMDA{} = np.einsum('i,ij->i', self.s_NMDA{}, self.gW[{}][1]*self.gW[{}][0]) \n", rnge, rnge, conn_id, conn_id)  
+                    self.write_equality("\t\tself.I_NMDA{} = (self.gW[{}][0]*(self.V{}-self.VE{})/(1 + ({}*np.exp(-0.062*self.V{}))/3.57))*np.einsum('j,ij->i', self.s_NMDA{}, self.gW[{}][1])\n", rnge, 
+                                                                                                                                                                                                 conn_id,  
+                                                                                                                                                                                                 rnge, 
+                                                                                                                                                                                                 rnge,
+                                                                                                                                                                                                 conn['synapse_params']['C_Mg'], 
+                                                                                                                                                                                                 rnge,
+                                                                                                                                                                                                 frange, 
+                                                                                                                                                                                                 conn_id,)  
                     
                     # self.write_equality("\t\tself.ds_NMDA{} += np.einsum('i,ij->i', ((-self.s_NMDA{} / {}) + {}*self.x_NMDA{}*(1-self.s_NMDA{})), self.gW[{}][1]*self.gW[{}][0]) \n",  rnge, 
                     #                         rnge, 
@@ -474,27 +508,43 @@ class CodeGenerator:
 
         # self.code_string += "\t\tself.calculate_dxdt_all()\n"
         self.code_string += "\t\tself.I_syn = np.zeros({})\n".format(self.total_no_of_neurons)
-        self.code_string += "\t\tself.ds_NMDA = np.zeros({})\n".format(self.total_no_of_neurons)
+        
+        # self.code_string += "\t\tself.ds_NMDA = np.zeros({})\n".format(self.total_no_of_neurons)
+        
         self.code_string += "\t\tself.I_NMDA = np.zeros({})\n".format(self.total_no_of_neurons)
         
         self.code_string += "\t\tself.s_AMPA_ext = self.s_AMPA_ext + (-self.s_AMPA_ext / {})*self.dt  \n".format(synapse_params['tau_AMPA'])
         self.code_string += "\t\tself.s_AMPA = self.s_AMPA + (-self.s_AMPA / {})*self.dt  \n".format(synapse_params['tau_AMPA'])
         self.code_string += "\t\tself.s_GABA = self.s_GABA + (-self.s_GABA / {})*self.dt  \n".format(synapse_params['tau_GABA'])
-        self.code_string += "\t\tself.x_NMDA = self.x_NMDA + (-self.x_NMDA / {})*self.dt  \n".format(synapse_params['tau_NMDA_rise'])
-        self.code_string += "\t\tself.s_NMDA = self.s_NMDA + ((-self.s_NMDA / {}) + {}*self.x_NMDA*(1-self.s_NMDA))*self.dt  \n".format(synapse_params['tau_NMDA_decay'],
-                                                                                                                                            synapse_params['alpha'])
         
-        # self.code_string += "\t\tself.s_NMDA = self.s_NMDA + (-self.s_NMDA / {})*self.dt + {}*self.x_NMDA*(1-self.s_NMDA)  \n".format(synapse_params['tau_NMDA_decay'],                                                                                                                            synapse_params['alpha'])
+       
+                            
+        self.code_string += "\t\tself.x_NMDA = self.x_NMDA + (-self.x_NMDA / {})*self.dt  \n".format(synapse_params['tau_NMDA_rise'])
+        self.code_string += "\t\tself.x_NMDA += self.last_spikes_delayed \n"
+        
+        self.code_string += "\t\tself.x_NMDA_hist.append(np.copy(self.x_NMDA))  \n"
+        
+        self.code_string += "\t\tself.s_NMDA = self.s_NMDA + ((-self.s_NMDA / {}) + {}*self.x_NMDA*(1-self.s_NMDA))*self.dt \n".format(synapse_params['tau_NMDA_decay'], 
+                                                                                                                               synapse_params['alpha'])
+        
+        # self.code_string += "\t\tself.s_NMDA = self.s_NMDA + self.ds_NMDA*self.dt  \n"
+        self.code_string += "\t\tself.s_NMDA_hist.append(np.copy(self.s_NMDA))  \n"
+        
+        # self.code_string += "\t\tself.s_NMDA = self.s_NMDA + ((-self.s_NMDA / {})*self.dt + {}*self.x_NMDA*(1-self.s_NMDA)) \n".format(synapse_params['tau_NMDA_decay'], 
+        #                                                                                                                        synapse_params['alpha'])
         
         for conn_id, conn in enumerate(self.synapse_dict['connection_list']):
             self.write_equality("\t\tself.integrate_CONN_{}()\n", conn_id)
-            
         
+      
+        
+        # self.write_equality("\t\tself.I_NMDA = np.multiply(self.s_NMDA, (self.V-self.VE)) / (1 + {}*np.exp(-0.062*self.V)/3.57) \n", synapse_params['C_Mg'])  
             
         # self.code_string += "\t\tself.I_syn = np.multiply((self.V-self.VE),(self.s_AMPA_ext + self.s_AMPA))\n"
         self.code_string += "\t\tself.I_syn = np.multiply((self.V-self.VE),(self.s_AMPA_ext + self.s_AMPA)) \n"
         self.code_string += "\t\tself.I_syn = self.I_syn + np.multiply((self.V-self.VI),self.s_GABA) \n"
-        self.code_string += "\t\tself.I_syn = self.I_syn + (self.I_NMDA/(1 + ({}*np.exp(-0.062*self.V)/3.57))) \n".format(synapse_params['C_Mg'])               
+        self.code_string += "\t\tself.I_syn = self.I_syn + self.I_NMDA/3.57 \n"
+        self.code_string += "\t\tself.I_NMDA_hist.append(np.copy(self.I_NMDA))  \n"
         self.code_string += "\t\tself.integrate_and_fire(time_idx)\n"
 
         self.code_string += "\t\tself.stim.step()\n"

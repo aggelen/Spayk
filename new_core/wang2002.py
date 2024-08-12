@@ -97,6 +97,7 @@ WA = np.hstack([np.full((cfg.no_A, cfg.no_A), cfg.w_plus),
 WB = np.hstack([np.full((cfg.no_B, cfg.no_A), cfg.w_minus),
                 np.full((cfg.no_B, cfg.no_B), cfg.w_plus),
                 np.full((cfg.no_B, cfg.no_N), cfg.w_minus)])
+# %%
 WN = np.hstack([np.full((cfg.no_N, cfg.no_A), 1.0),
                 np.full((cfg.no_N, cfg.no_B), 1.0),
                 np.full((cfg.no_N, cfg.no_N), 1.0)])
@@ -207,3 +208,31 @@ rate_I = population_firing_rates(op_spikes[1600:], cfg.dt, 50e-3, 5e-3)
 plt.figure()
 plt.plot(rate_E, color='darkred')
 plt.plot(rate_I, color='darkblue')
+
+#%%
+rate_A = population_firing_rates(op_spikes[:240], cfg.dt, 50e-3, 5e-3)
+rate_B = population_firing_rates(op_spikes[240:480], cfg.dt, 50e-3, 5e-3)
+plt.figure()
+plt.plot(rate_A, color='darkred')
+plt.plot(rate_B, color='darkblue')
+
+#%%
+xNMDA_hist = np.array(wang_nc.problem.x_NMDA_hist)
+plt.figure()
+plt.plot(xNMDA_hist[:, 125])
+plt.plot(xNMDA_hist[:, 310])
+plt.plot(xNMDA_hist[:, 1825])
+
+#%%
+sNMDA_hist = np.array(wang_nc.problem.s_NMDA_hist)
+# plt.figure()
+plt.plot(sNMDA_hist[:, 125])
+plt.plot(sNMDA_hist[:, 310])
+plt.plot(sNMDA_hist[:, 1825])
+
+#%%
+INMDA_hist = np.array(wang_nc.problem.I_NMDA_hist)
+plt.figure()
+plt.plot(INMDA_hist[:, 125])
+plt.plot(INMDA_hist[:, 310])
+plt.plot(INMDA_hist[:, 1825])
