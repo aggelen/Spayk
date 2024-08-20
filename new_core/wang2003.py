@@ -56,13 +56,13 @@ for i in range(0,int(int(cfg.sim_duration*1e3)/resample_period)):
 
 stim_a, stim_b = np.hstack(stim_a), np.hstack(stim_b)
 
-# stim_a[:] = 0.0
-# stim_b[:] = 0.0
+stim_a[:] = 0.0
+stim_b[:] = 0.0
 
-stim_a[:int(len(stim_a)/4)] = 0.0
-stim_b[:int(len(stim_a)/4)] = 0.0
-stim_a[int(3*len(stim_b)/4):] = 0.0
-stim_b[int(3*len(stim_b)/4):] = 0.0
+# stim_a[:int(len(stim_a)/4)] = 0.0
+# stim_b[:int(len(stim_a)/4)] = 0.0
+# stim_a[int(3*len(stim_b)/4):] = 0.0
+# stim_b[int(3*len(stim_b)/4):] = 0.0
 
 plt.figure()
 plt.plot(stim_a)
@@ -110,23 +110,23 @@ np.fill_diagonal(W_exc2exc, 0.0)   # Each neuron receives inputs from all other 
 # E2E Synapses
 s_E2E = SynapseGroup('E', 'E', cfg.synapse_params)
 s_E2E.AMPA(gs=cfg.g_ampa_exc2exc, ws=W_exc2exc)
-s_E2E.NMDA(gs=cfg.g_nmda_exc2exc, ws=W_exc2exc)
+# s_E2E.NMDA(gs=cfg.g_nmda_exc2exc, ws=W_exc2exc)
 
 # E2I Synapses
 s_E2I = SynapseGroup('E', 'I', cfg.synapse_params)
 s_E2I.AMPA(gs=cfg.g_ampa_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
-s_E2I.NMDA(gs=cfg.g_nmda_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
+# s_E2I.NMDA(gs=cfg.g_nmda_exc2inh, ws=np.ones((cfg.no_inh, cfg.no_exc)))
 
 # I2E Synapses
-s_I2E = SynapseGroup('I', 'E', cfg.synapse_params)
-s_I2E.GABA(gs=cfg.g_gaba_inh2exc, ws=np.ones((cfg.no_exc, cfg.no_inh)))
+# s_I2E = SynapseGroup('I', 'E', cfg.synapse_params)
+# s_I2E.GABA(gs=cfg.g_gaba_inh2exc, ws=np.ones((cfg.no_exc, cfg.no_inh)))
 
-wI2I = np.ones((cfg.no_inh, cfg.no_inh))
-np.fill_diagonal(wI2I, 0.0)
+# wI2I = np.ones((cfg.no_inh, cfg.no_inh))
+# np.fill_diagonal(wI2I, 0.0)
 
 # I2I Synapses
-s_I2I = SynapseGroup('I', 'I', cfg.synapse_params)
-s_I2I.GABA(gs=cfg.g_gaba_inh2inh, ws=wI2I)
+# s_I2I = SynapseGroup('I', 'I', cfg.synapse_params)
+# s_I2I.GABA(gs=cfg.g_gaba_inh2inh, ws=wI2I)
 
 #%% Stimulus Synapses
 s_Noise2E = SynapseGroup('noiseE', 'E', cfg.synapse_params)
@@ -148,8 +148,8 @@ s_StimB2B.AMPA_EXT(gs=cfg.g_ampa_ext2exc, ws=W_one_to_one_240)
 # synapses = [s_Noise2E, s_Noise2I]
 # synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 # synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2I]
-# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I]
-synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I, s_I2E, s_I2I]
+synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I]
+# synapses = [s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B, s_E2E, s_E2I, s_I2E, s_I2I]
 # synapses = [s_E2E, s_E2I, s_I2E, s_I2I, s_Noise2E, s_StimA2A, s_StimB2B]
 # synapses = [s_E2E, s_E2I, s_Noise2E, s_Noise2I, s_StimA2A, s_StimB2B]
 
@@ -257,30 +257,16 @@ plt.title('V')
 
 print("Max Rate for Group I: {}".format(rate_I.max()))
 
-#%%
-xNMDA_hist = np.array(wang_nc.problem.log['x_NMDA'])
-plt.figure()
-plt.plot(xNMDA_hist)
+# xNMDA_hist = np.array(wang_nc.problem.x_NMDA_hist)
+# plt.figure()
+# plt.plot(xNMDA_hist[:, 125])
 # plt.plot(xNMDA_hist[:, 310])
 # plt.plot(xNMDA_hist[:, 1825])
 
-#%%
-sNMDA_hist = np.array(wang_nc.problem.log['s_NMDA'])
-plt.figure()
-plt.plot(sNMDA_hist)
-
-#%%
-INMDA_hist = np.array(wang_nc.problem.log['I_NMDA'])
-plt.figure()
-plt.plot(INMDA_hist)
-
-#%%
-sNMDAtot_hist = np.array(wang_nc.problem.log['s_NMDA_total'])
-plt.figure()
-plt.plot(sNMDAtot_hist)
-
-
-
+# #%%
+# sNMDA_hist = np.array(wang_nc.problem.s_NMDA_hist)
+# # plt.figure()
+# plt.plot(sNMDA_hist[:, 125])
 # plt.plot(sNMDA_hist[:, 310])
 # plt.plot(sNMDA_hist[:, 1825])
 

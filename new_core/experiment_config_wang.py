@@ -8,7 +8,7 @@ Created on Sun Jul 21 12:03:16 2024
 
 class Wang2002Config:
     dt = 0.1e-3
-    sim_duration = 1
+    sim_duration = 4
     
     no_neurons = 2000
     no_exc = 1600
@@ -72,7 +72,7 @@ class Wang2002Config:
                       'tau_NMDA_decay': 100.0e-3, 
                       'tau_GABA': 5.0e-3,
                       'alpha': 0.5e3,
-                      'C_Mg': 1e-3}   
+                      'C_Mg': 1}   
  
     # exc_neuron_params = {'VL': VL,
     #                      'VT': VT, 
