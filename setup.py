@@ -6,7 +6,8 @@ import numpy
 extensions = [
     Extension(
         "spayk.CIntegrators",
-        ["spayk/CIntegrators.pyx"],
+        "spayk.Core"
+        ["spayk/CIntegrators.pyx", "spayk/Core.pyx"],
         # include_dirs=['/some/path/to/include/'], # not needed for fftw unless it is installed in an unusual place
         # libraries=['fftw3', 'fftw3f', 'fftw3l', 'fftw3_threads', 'fftw3f_threads', 'fftw3l_threads'],
         # library_dirs=['/some/path/to/include/'], # not needed for fftw unless it is installed in an unusual place
